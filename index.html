@@ -12,7 +12,7 @@
     --gauge:#C0392B; --particle:#1F5FA8; --lock:#1B7A5A;
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
     --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-    --fs:15px; --gauge-scale:1;
+    --fs:15px; --gauge-scale:1; --topbar:70px;
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
@@ -43,7 +43,14 @@
   nav.pages button:hover{background:#DFE4E9;color:var(--ink)}
   nav.pages button.on{background:var(--ink);color:#fff}
   nav.pages button .pin{color:var(--lock);margin-left:3px}
-  .topbar .acts{display:flex;gap:7px;align-items:center}
+  .topbar .acts{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+  @media(max-width:760px){
+    .topbar-in{gap:9px;padding:9px 14px}
+    .brand{font-size:.94em}
+    nav.pages{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+    nav.pages::-webkit-scrollbar{height:0}
+    .topbar .acts{margin-left:auto}
+  }
 
   /* ── 버튼 ── */
   button{
@@ -60,6 +67,7 @@
   button.tiny{font-size:.76em;padding:4px 9px}
 
   /* ── 강사 모드 ── */
+  .viewbtn{font-family:var(--mono);font-size:.76em;letter-spacing:.06em;white-space:nowrap}
   .lockbtn{
     border:1px solid var(--line);background:var(--panel);border-radius:6px;
     padding:6px 10px;font-size:.95em;line-height:1;cursor:pointer;
@@ -115,6 +123,14 @@
   @media(max-width:900px){.split{grid-template-columns:1fr}}
   .observe{min-width:0}
   .record{min-width:0}
+  /* 보면서 쓰게 만들어야 회상이 아니라 관찰이 된다 — 왼쪽은 화면에 붙여 둔다 */
+  @media(min-width:901px){
+    .split > .observe{
+      position:sticky;top:calc(var(--topbar) + 14px);
+      max-height:calc(100vh - var(--topbar) - 30px);
+      overflow-y:auto;overscroll-behavior:contain;padding-right:10px;
+    }
+  }
   .colcap{
     font-family:var(--mono);font-size:.68em;letter-spacing:.13em;text-transform:uppercase;
     color:var(--muted);margin:0 0 9px;
@@ -150,11 +166,11 @@
   }
   .step.locked .step-no{background:#AEB8C2}
   .step.done .step-no{background:var(--lock)}
-  .step-body-h{flex:1;min-width:0}
+  .step-body-h{flex:1;min-width:0;display:block}
   .step-title{font-weight:700;font-size:1em;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   .step-title em{font-style:normal;font-family:var(--mono);font-size:.72em;color:var(--muted);letter-spacing:.06em}
   .step-cond{
-    font-size:.85em;color:#3E6B58;background:#F1F8F4;border:1px solid #CBE5D8;
+    display:block;font-size:.85em;color:#3E6B58;background:#F1F8F4;border:1px solid #CBE5D8;
     border-radius:6px;padding:6px 10px;margin-top:7px;line-height:1.5;
   }
   .step-cond b{font-family:var(--mono);font-size:.86em;letter-spacing:.08em;text-transform:uppercase;color:var(--lock);margin-right:6px}
@@ -236,10 +252,10 @@
 
   /* ── 프레임 ── */
   .frame{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
-  .frame iframe{display:block;width:100%;height:78vh;min-height:560px;border:0;background:#E9ECEF}
+  .frame iframe{display:block;width:100%;height:calc(100vh - var(--topbar) - 118px);min-height:430px;border:0;background:#E9ECEF}
   .frame .fbar{
     display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:8px 12px;border-bottom:1px solid var(--line-soft);background:#F5F7F9;
+    padding:7px 8px 7px 12px;border-bottom:1px solid var(--line-soft);background:#F5F7F9;flex:none;
     font-family:var(--mono);font-size:.72em;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
   }
 
@@ -267,13 +283,60 @@
   .metric{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:calc(1.55em * var(--gauge-scale));letter-spacing:-.02em}
   body.project{--gauge-scale:2}
 
-  .prog{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 22px}
-  .prog i{
-    font-style:normal;font-family:var(--mono);font-size:.7em;letter-spacing:.08em;
+  .prog{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 22px;align-items:center}
+  .prog i,.prog button{
+    font-style:normal;font-family:var(--mono);font-size:.7em;font-weight:600;letter-spacing:.08em;
     border:1px solid var(--line);border-radius:5px;padding:4px 8px;color:var(--muted);background:var(--panel);
   }
-  .prog i.done{background:#F1F8F4;border-color:#CBE5D8;color:var(--lock)}
-  .prog i.now{background:var(--ink);border-color:var(--ink);color:#fff}
+  .prog button{cursor:pointer;transition:border-color .12s,background .12s}
+  .prog button:hover{border-color:#9FB0C0;background:#F2F5F8}
+  .prog i.done,.prog button.done{background:#F1F8F4;border-color:#CBE5D8;color:var(--lock)}
+  .prog i.now,.prog button.now{background:var(--ink);border-color:var(--ink);color:#fff}
+  .prog button.lk{opacity:.5;cursor:not-allowed}
+  .prog button.lk:hover{border-color:var(--line);background:var(--panel)}
+
+  /* ── 가로 보기 — 한 화면에 한 단계, 좌우로 넘긴다 ── */
+  .hzhead,.hznav{display:none}
+  body.hz .page.set > h1,body.hz .page.set > .eyebrow,body.hz .page.set > .lede{display:none}
+  body.hz .hzhead{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 12px}
+  body.hz .hzhead b{font-size:1.2em;letter-spacing:-.02em}
+  body.hz .hzhead span{color:var(--muted);font-size:.9em}
+  body.hz .page.set .prog{margin-bottom:12px}
+  body.hz .page.set .step{margin-bottom:0}
+  body.hz .page.set .step:not(.cur){display:none}
+  body.hz .page.set .step .step-body{display:block;padding-top:18px}
+  body.hz .page.set .step-head{cursor:default}
+  body.hz .page.set .step-head:hover{background:none}
+  body.hz .wrap{padding-top:16px;padding-bottom:20px}
+  body.hz .page.set .step-head{padding:11px 16px}
+  body.hz .page.set .step .step-body{padding:14px 16px 14px}
+  body.hz .hznav{margin-top:10px;padding-top:10px}
+  body.hz .page.set .split{height:var(--splitH, calc(100vh - var(--topbar) - 300px));min-height:340px;align-items:stretch}
+  body.hz .page.set .split > .observe,
+  body.hz .page.set .split > .record{
+    position:static;height:100%;max-height:none;overflow-y:auto;
+    overscroll-behavior:contain;padding-right:10px;
+  }
+  body.hz .page.set .observe .frame{display:flex;flex-direction:column;height:100%}
+  body.hz .page.set .observe .frame iframe{flex:1 1 auto;height:auto;min-height:0}
+  body.hz .hznav{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft);
+  }
+  .hznav .pos{font-family:var(--mono);font-size:.76em;letter-spacing:.08em;color:var(--muted);text-align:center;flex:1}
+  body.hz [data-nextcard]{display:none}
+  body.hz [data-nextcard].show{display:block;margin-top:16px}
+  /* 워크벤치·내보내기는 세로 흐름을 유지하되 왼쪽만 붙여 둔다 */
+  body.hz .page:not(.set) .split{height:auto}
+  @media(max-width:900px){
+    body.hz .page.set > h1,body.hz .page.set > .eyebrow,body.hz .page.set > .lede{display:block}
+    body.hz .hzhead{display:none}
+    body.hz .page.set .split{height:auto;min-height:0}
+    body.hz .page.set .split > .observe,
+    body.hz .page.set .split > .record{height:auto;overflow:visible;padding-right:0}
+    body.hz .page.set .observe .frame{display:block;height:auto}
+    body.hz .page.set .observe .frame iframe{height:calc(100vh - var(--topbar) - 150px);min-height:340px}
+  }
 
   .rowbtns{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
   .divider{height:1px;background:var(--line-soft);margin:22px 0}
@@ -296,6 +359,7 @@
     <div class="brand">화학 바이브코딩 실습장<small>Chemistry · Vibe Coding</small></div>
     <nav class="pages" id="nav"></nav>
     <div class="acts">
+      <button class="ghost viewbtn" id="btnView" title="세로 보기 / 가로 보기">↕ 세로</button>
       <button class="ghost" id="btnSave">진행 저장</button>
       <button class="ghost" id="btnLoad">이어서 하기</button>
       <input type="file" id="fileIn" accept="application/json,.json" hidden>
@@ -678,9 +742,9 @@ const state={
   version:1,
   sets:{}, 
   bench:{standard:'', goal:'', done:'', verify:'', retry:'', basics:'', setNo:1},
-  ui:{page:'p0', open:{}}
+  ui:{page:'p0', open:{}, cur:{}, mode:'h'}
 };
-SETS.forEach(s=>{ state.sets[s.no]=blankSet(s); state.ui.open[s.no]=1; });
+SETS.forEach(s=>{ state.sets[s.no]=blankSet(s); state.ui.open[s.no]=1; state.ui.cur[s.no]=1; });
 
 const teacher={unlocked:false, project:false};
 
@@ -792,10 +856,10 @@ function stepBody(s, i){
   const no=s.no, d=state.sets[no];
   if(i===1){
     return '<div class="split">'
-     +'<div class="observe"><p class="colcap">왼쪽 · 관찰</p>'
-       +'<div class="frame"><div class="fbar"><span>'+esc(s.simName)+'</span><span>학생 입장에서 만져 보세요</span></div>'
-       +'<iframe src="'+s.sim+'" title="'+esc(s.title)+' 완성본" loading="lazy"></iframe></div>'
-       +'<div class="rowbtns"><button class="tiny ghost" data-open="'+s.sim+'">새 창으로 크게 보기</button></div></div>'
+     +'<div class="observe"><p class="colcap">왼쪽 · 관찰 — 학생 입장에서 만져 보세요</p>'
+       +'<div class="frame"><div class="fbar"><span>'+esc(s.simName)+'</span>'
+       +'<button class="tiny ghost" data-open="'+s.sim+'">새 창으로 크게 보기 ↗</button></div>'
+       +'<iframe src="'+s.sim+'" title="'+esc(s.title)+' 완성본" loading="lazy"></iframe></div></div>'
      +'<div class="record"><p class="colcap">오른쪽 · 기록</p>'
        +'<label class="fld"><span class="lb">무엇이 보였습니까<i data-cnt="'+no+'-memo">0 / 20자</i></span>'
        +'<textarea data-f="'+no+'.s1.memo" placeholder="움직여 보면서 눈에 걸린 것을 그대로 적으세요. 정답을 쓰는 칸이 아닙니다.">'+esc(d.s1.memo)+'</textarea>'
@@ -880,11 +944,14 @@ function errRow(no,ei,e,opts){
 
 function pageSet(s){
   const no=s.no;
-  return '<section class="page" id="p'+no+'">'
+  return '<section class="page set" id="p'+no+'">'
    +'<p class="eyebrow">SET '+no+' · '+esc(s.pattern)+'</p>'
    +'<h1>'+esc(s.hook)+'</h1>'
    +'<p class="lede">'+esc(s.title)+' — 다섯 단계를 차례로 지납니다. 각 단계의 완료조건은 머리에 늘 띄워 둡니다. 잠긴 이유도 숨기지 않습니다.</p>'
-   +'<div class="prog" data-prog="'+no+'"></div>'
+   +'<div class="hzhead"><b>SET '+no+' · '+esc(s.title)+'</b><span>'+esc(s.hook)+'</span></div>'
+   +'<div class="prog" data-prog="'+no+'">'
+     + STEPS.map((st,k)=>'<button data-hzgo="'+no+'.'+(k+1)+'"></button>').join('')
+     +'<i data-setflag="'+no+'"></i></div>'
    + STEPS.map((st,k)=>{
       const i=k+1;
       return '<div class="step" data-step="'+no+'.'+i+'">'
@@ -899,6 +966,10 @@ function pageSet(s){
        +'</button>'
        +'<div class="step-body">'+stepBody(s,i)+'</div></div>';
      }).join('')
+   +'<div class="hznav" data-hznav="'+no+'">'
+     +'<button data-hzstep="'+no+'.-1">← 이전 단계</button>'
+     +'<span class="pos" data-hzpos="'+no+'"></span>'
+     +'<button data-hzstep="'+no+'.1">다음 단계 →</button></div>'
    +'<div class="card" data-nextcard="'+no+'"><div class="card-head"><h3>다음 세트로</h3><span class="tag">Gate</span></div>'
      +'<p class="hint" data-nextmsg="'+no+'" style="margin:0 0 12px"></p>'
      +'<div class="rowbtns"><button class="solid" data-next="'+no+'">다음으로</button></div></div>'
@@ -1103,13 +1174,14 @@ function build(){
   $('wrap').innerHTML = pageBench() + SETS.map(pageSet).join('') + pageWorkbench() + pageExport();
   $('nav').innerHTML = PAGES.map(p=>
     '<button data-page="'+p.id+'">'+esc(p.lab)+(p.setNo?'<span class="pin" data-pin="'+p.setNo+'"></span>':'')+'</button>').join('');
-  bindAll(); go(state.ui.page); refreshAll();
+  go(state.ui.page); refreshAll();
 }
 
 function go(id){
   state.ui.page=id;
   document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on', p.id===id));
   document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.page===id));
+  if(/^p[1-4]$/.test(id)) fitSplit();
   if(id==='p0') startThumbs();
   if(id==='p5') renderBenchOut();
   if(id==='p6') renderExports();
@@ -1127,6 +1199,7 @@ function refreshSet(no){
     el.classList.toggle('done', done);
     if(!openable) el.classList.remove('open');
     else el.classList.toggle('open', state.ui.open[no]===i);
+    el.classList.toggle('cur', hz() && state.ui.cur[no]===i);
     el.querySelector('.step-state').textContent = !openable ? '잠김' : (done ? '통과' : '진행 중');
     const lm=el.querySelector('.lockmsg');
     lm.style.display = openable ? 'none' : '';
@@ -1139,11 +1212,34 @@ function refreshSet(no){
   cnt('memo', len(d.s1.memo), 20); cnt('q', len(d.s1.question), 10);
   cnt('imp', len(d.s3.impression), 20); cnt('plan', len(d.s5.plan), 20);
 
-  const prog=document.querySelector('[data-prog="'+no+'"]');
-  if(prog) prog.innerHTML=STEPS.map((st,k)=>{
-    const i=k+1, cls=stepDone(no,i)?'done':(state.ui.open[no]===i?'now':'');
-    return '<i class="'+cls+'">'+st.no+' '+esc(st.name)+(stepDone(no,i)?' ✓':'')+'</i>';
-  }).join('')+'<i class="'+(setDone(no)?'done':'')+'">세트 '+(setDone(no)?'완료':'미완료')+'</i>';
+  const active=hz()?state.ui.cur[no]:state.ui.open[no];
+  STEPS.forEach((st,k)=>{
+    const i=k+1, chip=document.querySelector('[data-hzgo="'+no+'.'+i+'"]');
+    if(!chip) return;
+    const open=stepOpenable(no,i), done=stepDone(no,i);
+    const cls=(done?'done ':'')+(active===i?'now ':'')+(open?'':'lk');
+    chip.className=cls.trim();
+    const txt=st.no+' '+st.name+(done?' ✓':(open?'':' 🔒'));
+    if(chip.textContent!==txt) chip.textContent=txt;
+  });
+  const flag=document.querySelector('[data-setflag="'+no+'"]');
+  if(flag){
+    flag.className=setDone(no)?'done':'';
+    const ft='세트 '+(setDone(no)?'완료':'미완료');
+    if(flag.textContent!==ft) flag.textContent=ft;
+  }
+
+  const pos=document.querySelector('[data-hzpos="'+no+'"]');
+  if(pos){
+    const c=state.ui.cur[no];
+    pos.textContent=STEPS[c-1].no+' · '+STEPS[c-1].name+'   ('+c+' / 5)';
+  }
+  const prev=document.querySelector('[data-hzstep="'+no+'.-1"]'),
+        next=document.querySelector('[data-hzstep="'+no+'.1"]');
+  if(prev) prev.disabled = state.ui.cur[no]<=1;
+  if(next) next.disabled = state.ui.cur[no]>=5 || !stepOpenable(no, state.ui.cur[no]+1);
+  const nc=document.querySelector('[data-nextcard="'+no+'"]');
+  if(nc) nc.classList.toggle('show', state.ui.cur[no]===5);
 
   const msg=document.querySelector('[data-nextmsg="'+no+'"]'),
         btn=document.querySelector('[data-next="'+no+'"]');
@@ -1173,6 +1269,75 @@ function refreshAll(){
   if(state.ui.page==='p6') renderExports();
 }
 
+/* ═══════════ 보기 모드 ═══════════
+   세로로 길게 흐르면 관찰과 기록이 멀어진다.
+   가로 보기는 한 화면에 한 단계만 두고 좌우로 넘긴다.                    */
+function hz(){ return state.ui.mode==='h'; }
+function measureTopbar(){
+  const h=document.querySelector('.topbar').offsetHeight||70;
+  document.documentElement.style.setProperty('--topbar', h+'px');
+}
+function fitSplit(){
+  const root=document.documentElement;
+  if(!hz() || !/^p[1-4]$/.test(state.ui.page) || window.innerWidth<901){
+    root.style.removeProperty('--splitH'); return;
+  }
+  const pg=document.getElementById(state.ui.page);
+  const sp=pg && pg.querySelector('.step.cur .split');
+  if(!sp){ root.style.removeProperty('--splitH'); return; }
+  root.style.setProperty('--splitH','0px');            // 접어 두고 위쪽이 실제로 몇 px인지 잰다
+  const top=sp.getBoundingClientRect().top+window.scrollY;
+  const nav=pg.querySelector('.hznav');
+  const card=pg.querySelector('[data-nextcard].show');   // S5에서만 나타난다
+  const below=(nav?nav.offsetHeight:0)+(card?card.offsetHeight+16:0)+58;
+  root.style.setProperty('--splitH', Math.max(340, Math.round(window.innerHeight-top-below))+'px');
+}
+function applyView(){
+  document.body.classList.toggle('hz', hz());
+  $('btnView').textContent = hz() ? '↔ 가로' : '↕ 세로';
+  $('btnView').title = hz() ? '가로 보기 — 한 화면에 한 단계, ← → 로 이동' : '세로 보기 — 다섯 단계를 죽 훑기';
+  if(hz()) SETS.forEach(s=>{ state.ui.cur[s.no]=clampStep(s.no, state.ui.cur[s.no]||1); });
+  measureTopbar(); refreshAll(); fitSplit();
+}
+function clampStep(no,i){
+  i=Math.max(1,Math.min(5,i));
+  while(i>1 && !stepOpenable(no,i)) i--;
+  return i;
+}
+function goStep(no,i,quiet){
+  const t=Math.max(1,Math.min(5,i));
+  if(!stepOpenable(no,t)){
+    if(!quiet) toast('앞 단계의 완료조건을 먼저 채워야 열립니다 — '+whyLocked(no,t));
+    return;
+  }
+  state.ui.cur[no]=t; state.ui.open[no]=t;
+  refreshSet(no);
+  const pg=document.getElementById('p'+no);
+  if(pg){
+    pg.querySelectorAll('.observe,.record').forEach(el=>{ el.scrollTop=0; });
+    if(!hz()){
+      const st=pg.querySelector('.step[data-step="'+no+'.'+t+'"]');
+      if(st) st.scrollIntoView({block:'start'});
+    }else{ window.scrollTo(0,0); fitSplit(); }
+  }
+}
+$('btnView').addEventListener('click', ()=>{
+  state.ui.mode = hz() ? 'v' : 'h';
+  applyView();
+  toast(hz()
+    ? '가로 보기 — 한 화면에 한 단계씩. ← → 키나 위 단계 칩으로 넘기세요'
+    : '세로 보기 — 다섯 단계를 죽 펼쳐 봅니다');
+});
+document.addEventListener('keydown', e=>{
+  if(e.metaKey||e.ctrlKey||e.altKey) return;
+  if(/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)||e.target.isContentEditable) return;
+  const m=/^p([1-4])$/.exec(state.ui.page); if(!m) return;
+  const no=+m[1];
+  if(e.key==='ArrowRight'){ e.preventDefault(); goStep(no, state.ui.cur[no]+1); }
+  if(e.key==='ArrowLeft'){ e.preventDefault(); goStep(no, state.ui.cur[no]-1, true); }
+});
+window.addEventListener('resize', ()=>{ measureTopbar(); fitSplit(); });
+
 /* ═══════════ 이벤트 ═══════════ */
 function setPath(path,val){
   const p=path.split('.');
@@ -1198,10 +1363,20 @@ function bindAll(){
   $('wrap').addEventListener('click', e=>{
     const t=e.target.closest('button'); if(!t) return;
 
+    if(t.dataset.hzgo){
+      const [no,i]=t.dataset.hzgo.split('.').map(Number);
+      goStep(no,i); return;
+    }
+    if(t.dataset.hzstep){
+      const [no,d]=t.dataset.hzstep.split('.').map(Number);
+      goStep(no, state.ui.cur[no]+d, d<0); return;
+    }
     if(t.dataset.toggle){
       const [no,i]=t.dataset.toggle.split('.').map(Number);
+      if(hz()) return;
       if(!stepOpenable(no,i)){ toast('앞 단계의 완료조건을 먼저 채워야 열립니다 — '+whyLocked(no,i)); return; }
       state.ui.open[no]=(state.ui.open[no]===i)?0:i;
+      state.ui.cur[no]=i||state.ui.cur[no];
       refreshSet(no); return;
     }
     if(t.dataset.open){ window.open(t.dataset.open,'_blank','noopener'); return; }
@@ -1259,7 +1434,8 @@ function stamp(){
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
 }
 function saveNow(){
-  const out={version:state.version, savedAt:new Date().toISOString(), sets:state.sets, bench:state.bench};
+  const out={version:state.version, savedAt:new Date().toISOString(),
+    sets:state.sets, bench:state.bench, view:state.ui.mode};
   const fn='chem-vibecoding-progress_'+stamp()+'.json';
   download(JSON.stringify(out,null,2), fn);
   hideNudge(); toast('진행을 '+fn+' 파일로 내려받았습니다. 이어서 할 때 이 파일을 불러오세요');
@@ -1283,6 +1459,7 @@ function loadFrom(obj){
   const b=obj.bench||{};
   state.bench={standard:b.standard||'', goal:b.goal||'', done:b.done||'',
     verify:b.verify||'', retry:b.retry||'', basics:b.basics||'', setNo:+b.setNo||1};
+  if(obj.view==='h'||obj.view==='v') state.ui.mode=obj.view;
 }
 $('btnSave').addEventListener('click', saveNow);
 $('nudgeSave').addEventListener('click', saveNow);
@@ -1294,7 +1471,7 @@ $('fileIn').addEventListener('change', e=>{
   r.onload=()=>{
     try{
       loadFrom(JSON.parse(r.result));
-      const page=state.ui.page; build(); go(page);
+      const page=state.ui.page; build(); go(page); applyView();
       toast('불러왔습니다. 이어서 하세요');
     }catch(err){ toast('불러오지 못했습니다 — 이 사이트가 저장한 JSON 파일인지 확인해 주세요'); }
     e.target.value='';
@@ -1361,7 +1538,8 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2800);
 }
 
-build();
+bindAll(); build(); measureTopbar(); applyView();
+if(window.ResizeObserver) new ResizeObserver(measureTopbar).observe(document.querySelector('.topbar'));
 })();
 </script>
 </body>
