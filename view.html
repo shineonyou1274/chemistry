@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화학 바이브코딩 실습장</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --paper:#E9ECEF; --panel:#FFFFFF; --ink:#16202B; --muted:#5F6B78;
+    --line:#D2D8DF; --line-soft:#E6EAEE; --lock:#1B7A5A;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --bar:48px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;
+    display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+  .bar{
+    flex:none;height:var(--bar);display:flex;align-items:center;gap:12px;
+    padding:0 14px;background:rgba(233,236,239,.96);border-bottom:1px solid var(--line);
+  }
+  a.home,button.act{
+    font-family:var(--sans);font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;
+    padding:7px 13px;white-space:nowrap;
+  }
+  a.home{background:var(--ink);color:#fff;border-color:var(--ink)}
+  a.home:hover{background:#2A3947}
+  button.act:hover{background:#F2F5F8;border-color:#B9C2CC}
+  a:focus-visible,button:focus-visible{outline:2px solid #1F5FA8;outline-offset:2px}
+  .title{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.09em;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;
+  }
+  .title b{color:var(--ink);font-weight:600;letter-spacing:.02em}
+  .acts{display:flex;gap:7px;flex:none}
+  iframe{flex:1;width:100%;border:0;background:var(--paper);min-height:0}
+  .oops{
+    margin:auto;max-width:44ch;text-align:center;padding:40px 24px;color:var(--muted);line-height:1.7;
+  }
+  .oops h1{font-size:20px;color:var(--ink);margin:0 0 10px;letter-spacing:-.02em}
+  @media(max-width:600px){
+    .title{display:none}
+    .bar{gap:8px;padding:0 10px}
+  }
+  @media print{.bar{display:none}}
+</style>
+</head>
+<body>
+  <div class="bar">
+    <a class="home" href="index.html">← 실습장으로</a>
+    <span class="title" id="title"></span>
+    <span class="acts">
+      <button class="act" id="raw">원본만 보기 ↗</button>
+    </span>
+  </div>
+  <iframe id="frame" title="시뮬레이션"></iframe>
+
+<script>
+(function(){
+"use strict";
+/* 주소창의 f 를 그대로 iframe 에 넣으면 아무 페이지나 이 사이트인 척 띄울 수 있다.
+   미리 정한 목록에 있는 파일만 연다.                                        */
+const ALLOWED={
+  'sims/gas.html':            '기체 분자 운동 — SET 1 완성본',
+  'sims/titration.html':      '산-염기 적정 — SET 2 완성본',
+  'sims/equilibrium.html':    '르샤틀리에 평형 — SET 3 완성본',
+  'sims/vsepr.html':          'VSEPR 분자 구조 — SET 4 완성본',
+  'sims/gas-flawed.html':     '검증 연습용 예비 결과물 — 오류가 심어져 있습니다',
+  'tools/classdata.html':     '모둠 데이터 집계 — 교실 도구'
+};
+const f=new URLSearchParams(location.search).get('f')||'';
+const frame=document.getElementById('frame'), title=document.getElementById('title');
+
+if(!Object.prototype.hasOwnProperty.call(ALLOWED,f)){
+  document.querySelector('.acts').style.display='none';
+  frame.remove();
+  const d=document.createElement('div');
+  d.className='oops';
+  d.innerHTML='<h1>열 수 없는 주소입니다</h1>'
+    +'<p>이 창은 실습장에 들어 있는 시뮬레이션과 도구만 엽니다.<br>'
+    +'왼쪽 위 <b>실습장으로</b>를 눌러 돌아가세요.</p>';
+  document.body.appendChild(d);
+  document.title='화학 바이브코딩 실습장';
+}else{
+  frame.src=f;
+  frame.title=ALLOWED[f];
+  title.innerHTML='<b>'+ALLOWED[f].split(' — ')[0]+'</b> · '+ALLOWED[f].split(' — ').slice(1).join(' — ');
+  document.title=ALLOWED[f].split(' — ')[0]+' — 화학 바이브코딩 실습장';
+  document.getElementById('raw').addEventListener('click',()=>window.open(f,'_blank','noopener'));
+}
+})();
+</script>
+</body>
+</html>
