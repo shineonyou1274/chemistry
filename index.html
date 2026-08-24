@@ -348,6 +348,26 @@
   }
   .toast.on{opacity:1;transform:translate(-50%,0)}
   @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}html{scroll-behavior:auto}}
+
+  /* ── 인쇄 — 지금 보고 있는 쪽을 전부 펼쳐서 종이에 담는다 ── */
+  @media print{
+    .topbar,.hznav,.savenudge,.toast,.tpanel,.teacher-flag,.prog,.hzhead{display:none!important}
+    body{background:#fff;font-size:10.5pt}
+    .wrap{max-width:none;padding:0}
+    .page{display:none!important}
+    .page.on{display:block!important}
+    .page.set > h1,.page.set > .eyebrow,.page.set > .lede{display:block!important}
+    .step{display:block!important;break-inside:avoid;margin-bottom:14px;border-style:solid}
+    .step .step-body{display:block!important;padding:14px 16px!important;height:auto!important}
+    .step-head{padding:12px 16px!important}
+    .split{display:block!important;height:auto!important}
+    .observe,.record{position:static!important;height:auto!important;max-height:none!important;overflow:visible!important;padding-right:0!important}
+    .record{margin-top:14px}
+    .frame,.bench .thumb,.rowbtns,#fileIn{display:none!important}
+    .out,pre.code{max-height:none!important;overflow:visible!important;white-space:pre-wrap}
+    .card,.note,.green,.red,.rub,.cmp{break-inside:avoid}
+    textarea,input[type=text]{border:1px solid #999;background:#fff}
+  }
 </style>
 </head>
 <body>
@@ -1219,6 +1239,12 @@ function refreshSet(no){
     const open=stepOpenable(no,i), done=stepDone(no,i);
     const cls=(done?'done ':'')+(active===i?'now ':'')+(open?'':'lk');
     chip.className=cls.trim();
+    // 잠긴 칩도 눌리는 버튼이다 — 누르면 왜 잠겼는지 알려 준다.
+    // 그래서 aria-disabled 가 아니라 이름에 상태와 이유를 담는다.
+    const why = open ? '' : ' — 잠김, '+whyLocked(no,i);
+    chip.setAttribute('aria-label', st.no+' '+st.name+(done?', 통과':'')+why);
+    chip.setAttribute('aria-current', active===i?'step':'false');
+    chip.title = open ? st.no+' · '+st.name+' — '+st.job : '잠김 — '+whyLocked(no,i);
     const txt=st.no+' '+st.name+(done?' ✓':(open?'':' 🔒'));
     if(chip.textContent!==txt) chip.textContent=txt;
   });
@@ -1434,14 +1460,28 @@ function stamp(){
   return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
 }
 function saveNow(){
-  const out={version:state.version, savedAt:new Date().toISOString(),
+  const out={kind:'chem-vibecoding-progress', version:state.version,
+    savedAt:new Date().toISOString(),
     sets:state.sets, bench:state.bench, view:state.ui.mode};
   const fn='chem-vibecoding-progress_'+stamp()+'.json';
   download(JSON.stringify(out,null,2), fn);
-  hideNudge(); toast('진행을 '+fn+' 파일로 내려받았습니다. 이어서 할 때 이 파일을 불러오세요');
+  markSaved(); hideNudge();
+  toast('진행을 '+fn+' 파일로 내려받았습니다. 이어서 할 때 이 파일을 불러오세요');
+}
+/* 아무 JSON이나 받아들이면, 엉뚱한 파일 하나에 오늘 작업이 통째로 날아간다.
+   진행 파일이 맞는지 먼저 확인한다.                                      */
+function looksLikeProgress(obj){
+  if(!obj || typeof obj!=='object' || Array.isArray(obj)) return false;
+  if(obj.kind==='chem-vibecoding-progress') return true;
+  const st=obj.sets;                                   // kind 가 없던 초기 파일은 모양으로 알아본다
+  if(!st || typeof st!=='object') return false;
+  return SETS.some(s=>{
+    const d=st[s.no]||st[String(s.no)];
+    return d && typeof d==='object' && (d.s1||d.s2||d.s3||d.s4||d.s5);
+  });
 }
 function loadFrom(obj){
-  if(!obj || typeof obj!=='object') throw new Error('형식이 아닙니다');
+  if(!looksLikeProgress(obj)) throw new Error('진행 파일이 아닙니다');
   SETS.forEach(s=>{
     const src=obj.sets && (obj.sets[s.no]||obj.sets[String(s.no)]);
     const blank=blankSet(s);
@@ -1470,26 +1510,37 @@ $('fileIn').addEventListener('change', e=>{
   const r=new FileReader();
   r.onload=()=>{
     try{
-      loadFrom(JSON.parse(r.result));
+      const obj=JSON.parse(r.result);
+      if(!looksLikeProgress(obj)) throw new Error('진행 파일이 아닙니다');
+      if(isDirty() && !window.confirm(
+          '지금 화면에 적어 둔 내용을 이 파일로 덮어씁니다.\n\n'
+          +'덮어쓰면 되돌릴 수 없습니다. 지금 것을 남기려면 취소하고 [진행 저장]을 먼저 누르세요.\n\n'
+          +'계속할까요?')){
+        toast('덮어쓰기를 취소했습니다'); e.target.value=''; return;
+      }
+      loadFrom(obj);
       const page=state.ui.page; build(); go(page); applyView();
-      toast('불러왔습니다. 이어서 하세요');
-    }catch(err){ toast('불러오지 못했습니다 — 이 사이트가 저장한 JSON 파일인지 확인해 주세요'); }
+      markSaved(); toast('불러왔습니다. 이어서 하세요');
+    }catch(err){
+      toast('불러오지 못했습니다 — 이 사이트가 [진행 저장]으로 만든 JSON 파일만 열 수 있습니다');
+    }
     e.target.value='';
   };
   r.readAsText(f);
 });
+/* 저장한 뒤에도 계속 경고하면 경고를 무시하게 된다.
+   마지막으로 저장한 내용과 지금 내용을 비교해서 판정한다.               */
+let savedSnapshot='';
+function snapshot(){ return JSON.stringify({sets:state.sets, bench:state.bench}); }
+function isDirty(){ return snapshot()!==savedSnapshot; }
+function markSaved(){ savedSnapshot=snapshot(); }
 window.addEventListener('beforeunload', e=>{
-  const dirty = SETS.some(s=>{
-    const d=state.sets[s.no];
-    return len(d.s1.memo)||len(d.s1.question)||d.s2.checks.some(Boolean)||len(d.s3.impression)
-      ||d.s4.errors.some(x=>len(x.text))||len(d.s5.place)||len(d.s5.plan);
-  }) || Object.keys(state.bench).some(k=>k!=='setNo' && len(state.bench[k]));
-  if(dirty){ e.preventDefault(); e.returnValue=''; }
+  if(isDirty()){ e.preventDefault(); e.returnValue=''; }
 });
 
 /* ═══════════ 저장 알림 — 5분마다 한 번 ═══════════ */
 function hideNudge(){ $('nudge').classList.remove('on'); }
-setInterval(()=>{ $('nudge').classList.add('on'); }, 5*60*1000);
+setInterval(()=>{ if(isDirty()) $('nudge').classList.add('on'); }, 5*60*1000);
 
 /* ═══════════ 강사 모드 ═══════════ */
 $('btnTeacher').addEventListener('click', ()=>{
@@ -1538,8 +1589,9 @@ function toast(msg){
   clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2800);
 }
 
-bindAll(); build(); measureTopbar(); applyView();
-if(window.ResizeObserver) new ResizeObserver(measureTopbar).observe(document.querySelector('.topbar'));
+bindAll(); build(); measureTopbar(); applyView(); markSaved();
+if(window.ResizeObserver) new ResizeObserver(()=>{ measureTopbar(); fitSplit(); })
+  .observe(document.querySelector('.topbar'));
 })();
 </script>
 </body>
