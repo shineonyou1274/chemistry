@@ -90,6 +90,12 @@
     font-family:var(--mono);font-size:.82em;width:180px;
   }
   .tpanel small{display:block;color:#3E6B58;font-size:.78em;margin-top:8px;line-height:1.55}
+  .tpanel .plan{margin-top:12px;padding-top:12px;border-top:1px solid #CBE5D8}
+  .tpanel .plan h4{margin:0 0 8px;font-size:.84em;color:#2E5B48}
+  .tpanel .plan table{width:100%;border-collapse:collapse;font-size:.8em}
+  .tpanel .plan td{padding:3px 0;color:#3E6B58;vertical-align:baseline;line-height:1.5}
+  .tpanel .plan td:first-child{width:52px;font-family:var(--mono);font-size:.92em;color:#2E5B48;font-weight:600}
+  .tpanel .plan p{margin:9px 0 0;font-size:.78em;color:#3E6B58;line-height:1.6}
 
   /* ── 저장 알림 ── */
   .savenudge{
@@ -231,6 +237,12 @@
     font-family:var(--mono);font-size:.8em;line-height:1.72;white-space:pre-wrap;margin:0;max-height:520px;overflow:auto;
   }
 
+  .shortp{border:1px solid var(--line);border-radius:9px;padding:14px 16px;margin-top:16px;background:#FCFDFE}
+  .shortp-h{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .shortp-h b{font-size:.95em}
+  .shortp-h span{font-size:.8em;color:var(--muted)}
+  .shortp pre.code{background:#F5F7F9}
+
   /* ── 노트 박스 ── */
   .note{background:#FDFBF4;border:1px solid #E8DFC4;border-radius:9px;padding:15px 18px;margin-bottom:16px}
   .note h4{font-size:.88em;margin:0 0 8px;color:#4A4232;letter-spacing:.01em}
@@ -269,6 +281,18 @@
   .fiveitem .fb div{font-size:.9em;line-height:1.62;margin-bottom:5px}
   .fiveitem .fb div:last-child{margin-bottom:0}
   .fiveitem .fb em{font-style:normal;font-family:var(--mono);font-size:.82em;color:var(--particle);margin-right:8px;letter-spacing:.04em}
+
+  /* ── ②에서 ③이 파생되는지 눈으로 대조 ── */
+  .derive{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:15px;background:#FCFDFE}
+  .dv-head{margin:0 0 8px;font-family:var(--mono);font-size:.7em;letter-spacing:.11em;text-transform:uppercase;color:var(--muted)}
+  .dv-empty{margin:0;font-size:.82em;color:var(--muted);line-height:1.55}
+  .dv-row{display:grid;grid-template-columns:44px 1fr;gap:4px 9px;padding:7px 0;border-top:1px solid var(--line-soft)}
+  .dv-row:first-of-type{border-top:0}
+  .dv-n{font-family:var(--mono);font-size:.72em;font-weight:600;color:var(--particle);padding-top:2px}
+  .dv-c{font-size:.85em;line-height:1.5}
+  .dv-v{grid-column:2;font-size:.8em;line-height:1.5;color:#8A4034}
+  .dv-row.has .dv-v{color:var(--lock)}
+  .dv-row.has .dv-v::before{content:"→ ";opacity:.7}
 
   /* ── 루브릭 ── */
   .rub{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px}
@@ -383,7 +407,7 @@
       <button class="ghost" id="btnSave">진행 저장</button>
       <button class="ghost" id="btnLoad">이어서 하기</button>
       <input type="file" id="fileIn" accept="application/json,.json" hidden>
-      <button class="lockbtn" id="btnTeacher" title="강사 모드" aria-label="강사 모드">🔒</button>
+      <button class="lockbtn" id="btnTeacher" title="강사 모드 · 7시간 진행표" aria-label="강사 모드">🔒</button>
     </div>
   </div>
   <div class="tpanel" id="tpanel">
@@ -394,6 +418,23 @@
       <button class="tiny" id="toff">강사 모드 끄기</button>
     </div>
     <small>전체 잠금 해제는 강사가 진도를 끌 때만 쓰세요. 잠금 자체가 오늘 배울 프레임의 시연물입니다.<br>투사 모드는 본문 글자를 1.35배, 계기판 수치를 2배로 키웁니다.</small>
+    <div class="plan">
+      <h4>7시간 권장 진행표 — <b>두 세트 + 워크벤치</b>가 최소 완결 단위입니다</h4>
+      <table>
+        <tr><td>0:00</td><td>0 체험대 — 네 개를 설명 없이 만지게 한다. 이야기는 아직 하지 않는다</td></tr>
+        <tr><td>0:30</td><td>SET 1 · 기체 분자 운동 — S1부터 S5까지</td></tr>
+        <tr><td>1:40</td><td>쉬는 시간</td></tr>
+        <tr><td>1:50</td><td>SET 2 또는 SET 3 중 <b>하나</b> — 연수생이 고르게 한다</td></tr>
+        <tr><td>3:00</td><td>점심</td></tr>
+        <tr><td>4:00</td><td>5 워크벤치 — 여기서 대상이 AI에서 학생으로 뒤집힌다</td></tr>
+        <tr><td>5:20</td><td>6 내보내기 — 산출물 3종을 실제로 뽑는다</td></tr>
+        <tr><td>6:30</td><td>나눔과 정리</td></tr>
+      </table>
+      <p>한 세트는 넉넉히 <b>65분</b>입니다. S3에서 AI가 한 번에 되는 경우가 거의 없어
+      20~30분이 걸립니다. <b>네 세트를 다 밀면 산출물 3종을 못 뽑고 끝납니다.</b>
+      세트는 서로 독립이라 건너뛴 세트가 있어도 워크벤치와 내보내기는 그대로 성립합니다.
+      SET 3·4는 남는 시간이나 연수 후 자율 과제로 돌리세요.</p>
+    </div>
   </div>
   <div class="savenudge" id="nudge">
     <b>저장하셨나요?</b>
@@ -484,6 +525,13 @@ const SETS = [
     ['한 걸음 더','방사성 붕괴 반감기 — 입자가 색을 바꾸며 사라지고 그래프가 동시에 그려지기'],
     ['수업 한 차시','한계 반응물 — 반응물 개수를 직접 조절해 남는 입자와 생성물을 세게 하기']
   ],
+  shortPrompt:`고등학생용 기체 분자 운동 시뮬레이션을 단일 HTML 파일로 만들어 주세요.
+
+- 온도, 부피, 입자 수를 슬라이더로 조절
+- 압력, 평균 제곱근 속력, PV/nT를 실시간 표시
+- 속력은 온도가 아니라 온도의 제곱근에 비례할 것
+- 압력은 충돌 횟수가 아니라 운동량 전달량을 누적해 계산할 것
+- 외부 라이브러리 없이 canvas만, 한 파일로`,
   prompt:`【목표】
 고등학생이 기체의 압력이 어디서 오는지 입자 수준에서 이해하도록,
 단일 HTML 파일로 된 기체 분자 운동 시뮬레이션을 만들어 주세요.
@@ -550,6 +598,14 @@ const SETS = [
     ['한 걸음 더','미지 농도 구하기 — 곡선만 주고 당량점을 읽어 농도를 역산하는 평가 문항'],
     ['수업 한 차시','이양성자산 적정 — 인산의 두 단계 당량점과 완충 구간 두 개를 비교하기']
   ],
+  shortPrompt:`고등학생용 산-염기 적정 시뮬레이션을 단일 HTML 파일로 만들어 주세요.
+
+- 산의 종류(강산/약산과 Ka), 농도, 부피, 적정액 농도를 조절
+- pH 곡선과 당량점을 실시간 표시
+- 조건별 근사식을 갈아 끼우지 말고 전하 균형식을 수치해로 풀 것
+  (그래야 당량점 pH가 강산-강염기일 때만 7로 나옵니다)
+- 적정액이 들어갈수록 총 부피가 늘어나는 희석을 반영할 것
+- 외부 라이브러리 없이 canvas만, 한 파일로`,
   prompt:`【목표】
 고등학생이 강산과 약산의 적정 곡선이 왜 다른 모양인지 이해하도록,
 단일 HTML 파일로 된 산-염기 적정 시뮬레이션을 만들어 주세요.
@@ -620,6 +676,14 @@ const SETS = [
     ['한 걸음 더','공통 이온 효과 — 같은 이온을 넣었을 때 용해도가 줄어드는 것'],
     ['수업 한 차시','하버-보슈 최적화 — 수율과 속도가 상충하는 조건을 학생이 직접 탐색하기']
   ],
+  shortPrompt:`고등학생용 화학 평형 시뮬레이션을 단일 HTML 파일로 만들어 주세요.
+
+- 농도, 온도, 부피, 촉매를 조절하고 Q와 K를 실시간 표시
+- 변화를 준 뒤 새 평형까지 곡선을 그리며 이동할 것 (즉시 점프 금지)
+- 촉매는 정반응과 역반응의 속도 상수에 같은 배수를 곱할 것
+  (그래야 K = kf/kr 이 수학적으로 변할 수 없습니다)
+- K는 온도에서만 계산할 것. 고체와 순수 액체는 K 식에서 제외
+- 외부 라이브러리 없이 canvas만, 한 파일로`,
   prompt:`【목표】
 고등학생이 동적 평형이 멈춘 것이 아니라는 것과 르샤틀리에 원리를 이해하도록,
 단일 HTML 파일로 된 화학 평형 시뮬레이션을 만들어 주세요.
@@ -690,6 +754,15 @@ const SETS = [
     ['한 걸음 더','분자간 힘 연결 — 구조와 극성에서 끓는점 순서를 예측하기'],
     ['수업 한 차시','이성질체 비교 — 시스·트랜스를 돌려 보며 성질 차이 설명하기']
   ],
+  shortPrompt:`고등학생용 VSEPR 분자 구조 시뮬레이션을 단일 HTML 파일로 만들어 주세요.
+
+- 분자를 고르면 3차원으로 돌려 보고, 결합각과 고립전자쌍을 표시
+- 결합각은 실험값에서 좌표를 역산하고, 화면 값은 그 좌표에서 내적으로 실측할 것
+  (CH₄ 109.5°, NH₃ 107°, H₂O 104.5°가 그대로 나와야 합니다)
+- 전자쌍 배열과 분자 구조를 구분해 둘 다 표시할 것
+- 극성은 전기음성도 차가 아니라 결합 쌍극자의 벡터합으로 판정할 것
+- 회전은 직교 회전행렬로 해서 결합 길이가 변하지 않게 할 것
+- 외부 라이브러리 없이 canvas만, 한 파일로`,
   prompt:`【목표】
 고등학생이 분자가 3차원이라는 것과 고립전자쌍이 구조를 바꾼다는 것을 이해하도록,
 단일 HTML 파일로 된 VSEPR 분자 구조 시뮬레이션을 만들어 주세요.
@@ -911,7 +984,14 @@ function stepBody(s, i){
     return '<div class="split">'
      +'<div class="observe"><p class="colcap">왼쪽 · 프롬프트 전문</p>'
        +'<pre class="code" data-prompt="'+no+'">'+esc(s.prompt)+'</pre>'
-       +'<div class="rowbtns"><button class="solid" data-copy="'+no+'">프롬프트 복사</button></div>'
+       +'<div class="rowbtns"><button class="solid" data-copy="'+no+'">프롬프트 전문 복사</button></div>'
+       +'<div class="shortp"><div class="shortp-h"><b>짧은 판</b>'
+         +'<span>자리에서 바로 해 보고 싶을 때 · 남에게 알려 줄 때</span></div>'
+         +'<pre class="code" data-short="'+no+'">'+esc(s.shortPrompt)+'</pre>'
+         +'<div class="rowbtns"><button data-copyshort="'+no+'">짧은 판 복사</button></div>'
+         +'<p class="hint">완성본을 본 사람이 "나도 만들고 싶은데 뭐라고 하지"라고 물으면 이걸 주세요. '
+         +'무너지면 안 되는 것만 남겼습니다. 위 전문과 이걸로 각각 만들어 비교해 보면 '
+         +'나머지 칸이 무엇을 사는지 보입니다.</p></div>'
        +'<div class="note" style="margin-top:16px"><h4>다섯 칸 중 하나를 빼고 돌려 보세요</h4>'
        +'<ul><li><b>완료조건</b>을 통째로 지우고 돌리면 무엇이 무너지는지 보세요. 결과가 확 나빠집니다</li>'
        +'<li><b>검증</b>을 지우면 AI가 스스로 확인하지 않고 "완성했습니다"로 끝냅니다</li>'
@@ -930,6 +1010,11 @@ function stepBody(s, i){
     const opts=s.conditions.map((c,ci)=>({v:'C'+(ci+1), t:'완료조건 '+(ci+1)+' — '+c.replace(/<[^>]+>/g,'')}));
     return '<div class="split">'
      +'<div class="observe"><p class="colcap">왼쪽 · 검증 절차</p>'
+       +'<div class="note"><h4>오류가 나오는 것이 정상입니다</h4>'
+       +'<p>한 번에 다 맞았다면 실력이 좋았던 것이 아니라 완료조건을 느슨하게 쓴 것입니다. '
+       +'S2에서 읽은 <b>AI가 흔히 내는 오류</b>는 정말로 자주 나옵니다. '
+       +'여기서 찾아내는 것은 내가 못했다는 증거가 아니라 <b>완료조건이 제 일을 하고 있다는 증거</b>입니다. '
+       +'잘 안 보이면 아래 검증 절차를 순서대로 한 번씩만 돌려 보세요. 대개 거기서 걸립니다.</p></div>'
        +'<div class="green"><h4>직접 돌려 볼 것</h4><ul>'
        + s.verify.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'
        +'<p class="colcap" style="margin-top:18px">대조할 완료조건</p>'+condListHtml(s)
@@ -1018,8 +1103,10 @@ function pageWorkbench(){
      +'<label class="fld"><span class="lb">② 완료조건 · 세 가지 이상<i data-bcnt="done">0줄 / 3줄</i></span>'
      +'<textarea data-b="done" style="min-height:112px" placeholder="한 줄에 하나씩.&#10;학생이 &quot;다 했다&quot;고 말할 수 있는 상태를 적으세요.">'+esc(b.done)+'</textarea>'
      +'<p class="hint">시작 <b>전에</b> 공개하는 것이 전부입니다. 나머지 세 칸은 여기서 파생됩니다.</p></label>'
-     +'<label class="fld"><span class="lb">③ 검증 · 제출 전 자기점검<i data-bcnt="verify">0 / 15자</i></span>'
-     +'<textarea data-b="verify" placeholder="학생이 제출 전에 스스로 돌려 볼 체크리스트">'+esc(b.verify)+'</textarea></label>'
+     +'<label class="fld" style="margin-bottom:8px"><span class="lb">③ 검증 · 제출 전 자기점검<i data-bcnt="verify">0줄</i></span>'
+     +'<textarea data-b="verify" style="min-height:104px" placeholder="한 줄에 하나씩.&#10;완료조건 하나마다, 학생이 그것을 스스로 확인할 방법 하나.">'+esc(b.verify)+'</textarea>'
+     +'<p class="hint">③은 ②에서 파생됩니다. 확인할 방법이 없는 완료조건은 완료조건이 아닙니다.</p></label>'
+     +'<div class="derive" id="deriveVerify"></div>'
      +'<label class="fld"><span class="lb">④ 재시도 · 범위와 횟수<i data-bcnt="retry">0 / 10자</i></span>'
      +'<textarea data-b="retry" style="min-height:64px" placeholder="재제출을 몇 번까지, 어떤 범위에서 받을지">'+esc(b.retry)+'</textarea></label>'
      +'<label class="fld"><span class="lb">⑤ 기본기 · 사전 지도와 스캐폴딩<i data-bcnt="basics">0 / 15자</i></span>'
@@ -1161,6 +1248,7 @@ function ex3Text(){
    +'- 관찰 변인 — '+s.varsObserve+'\n'
    +'- 사용한 AI 도구 — '+(d.s3.tool||dash)+'\n\n'
    +'## 사용한 프롬프트 전문\n\n```\n'+s.prompt+'\n```\n\n'
+   +'## 짧은 판 — 같은 것을 만들어 보고 싶은 사람에게\n\n```\n'+s.shortPrompt+'\n```\n\n'
    +'## 완료조건 목록\n\n'
    + s.conditions.map((c,i)=>(i+1)+'. '+c.replace(/<[^>]+>/g,'')).join('\n')+'\n\n'
    +'## 검증 절차\n\n'
@@ -1273,7 +1361,7 @@ function refreshSet(no){
     const okd=setDone(no)||teacher.unlocked;
     btn.disabled=!okd;
     msg.innerHTML = okd
-      ? 'S5까지 통과했습니다. 다음으로 넘어가세요.'
+      ? 'S5까지 통과했습니다. <b>두 세트를 마쳤다면 워크벤치로 바로 가도 됩니다</b> — 산출물 3종을 뽑는 데 네 세트가 다 필요하지는 않습니다.'
       : '<b>완료조건</b> — '+esc(STEPS[4].cond)+'. 아직 채우지 못했습니다. 세트끼리는 서로 독립이라, 위 메뉴로 다른 세트를 먼저 해도 됩니다.';
   }
   const pin=document.querySelector('[data-pin="'+no+'"]');
@@ -1284,7 +1372,21 @@ function refreshBenchCounters(){
   const set=(k,txt,ok)=>{ const e=document.querySelector('[data-bcnt="'+k+'"]'); if(e){e.textContent=txt; e.className=ok?'ok':'';} };
   set('goal', len(b.goal)+' / 20자', len(b.goal)>=20);
   const L=benchLines(); set('done', L.length+'줄 / 3줄', L.length>=3);
-  set('verify', len(b.verify)+' / 15자', len(b.verify)>=15);
+  const V=String(b.verify||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  set('verify', L.length ? V.length+'줄 / 완료조건 '+L.length+'줄' : '완료조건을 먼저 채우세요',
+      L.length>0 && V.length>=L.length);
+  const dv=$('deriveVerify');
+  if(dv){
+    if(!L.length){
+      dv.innerHTML='<p class="dv-empty">②를 채우면 여기에 하나씩 나열됩니다. 그 각각을 어떻게 확인할지가 ③입니다.</p>';
+    }else{
+      dv.innerHTML='<p class="dv-head">완료조건마다 확인할 방법이 있습니까</p>'
+        + L.map((x,i)=>'<div class="dv-row'+(V[i]?' has':'')+'">'
+            +'<span class="dv-n">②-'+(i+1)+'</span><span class="dv-c">'+esc(x)+'</span>'
+            +'<span class="dv-v">'+(V[i]?esc(V[i]):'확인할 방법이 비어 있습니다')+'</span></div>').join('')
+        + (V.length>L.length ? '<p class="dv-head" style="margin-top:9px">확인 방법이 '+(V.length-L.length)+'줄 더 있습니다</p>' : '');
+    }
+  }
   set('retry', len(b.retry)+' / 10자', len(b.retry)>=10);
   set('basics', len(b.basics)+' / 15자', len(b.basics)>=15);
 }
@@ -1408,7 +1510,11 @@ function bindAll(){
     if(t.dataset.open){ window.open(t.dataset.open,'_blank','noopener'); return; }
     if(t.dataset.copy){
       const s=SETS.find(x=>x.no===+t.dataset.copy);
-      copy(s.prompt,'프롬프트를 복사했습니다. AI 창에 그대로 붙여넣으세요'); return;
+      copy(s.prompt,'프롬프트 전문을 복사했습니다. AI 창에 그대로 붙여넣으세요'); return;
+    }
+    if(t.dataset.copyshort){
+      const s=SETS.find(x=>x.no===+t.dataset.copyshort);
+      copy(s.shortPrompt,'짧은 판을 복사했습니다. 그대로 붙여넣거나 남에게 보내세요'); return;
     }
     if(t.dataset.copytext){
       const el=$(t.dataset.copytext);
