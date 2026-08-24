@@ -38,6 +38,13 @@
   .g.locked{background:#F1F8F4;border:1px solid #CBE5D8;border-radius:8px;padding:12px 13px;margin-top:12px}
   .g.locked .g-val{color:var(--lock)}
   .g.locked .g-note{font-size:11.5px;color:#3E6B58;line-height:1.5;margin-top:5px}
+  /* K는 온도에 지수적으로 반응한다. 선형 막대로 보이면 크기를 못 읽는다 */
+  .kscale{position:relative;height:6px;background:#DCE9E1;border-radius:3px;margin-top:9px}
+  .kscale i{position:absolute;top:-3px;width:3px;height:12px;background:var(--lock);border-radius:2px;
+    transition:left .12s linear;transform:translateX(-50%)}
+  .kscale b{position:absolute;top:-2px;width:1px;height:10px;background:#8FB3A1;transform:translateX(-50%)}
+  .kends{display:flex;justify-content:space-between;font-family:var(--mono);font-size:9.5px;
+    color:#5F8571;margin-top:5px;letter-spacing:.02em}
   .bars{margin-top:14px}
   .bar{margin-bottom:9px}
   .bar-top{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;font-variant-numeric:tabular-nums;margin-bottom:3px}
@@ -117,7 +124,9 @@
 
         <div class="g locked">
           <span class="g-label">평형 상수 K</span>
-          <span class="g-val" id="vK">0.20</span>
+          <span class="g-val" id="vK">0.20</span><span class="g-unit" id="vKx">기준 대비 ×1.0</span>
+          <div class="kscale"><b id="kT0"></b><i id="kbar"></i></div>
+          <div class="kends"><span id="kLo"></span><span id="kHi"></span></div>
           <p class="g-note" id="kNote">온도만이 이 값을 바꿉니다. 촉매도, 농도도, 부피도 바꾸지 못합니다.</p>
         </div>
 
@@ -200,6 +209,7 @@
     <ul>
       <li>촉매는 <code>kf</code>와 <code>kr</code>을 <b>같은 배수</b>로 곱합니다. <code>K = kf/kr</code>이므로 K는 수학적으로 변할 수 없고, 도달 시간만 짧아집니다</li>
       <li>K는 <code>반트호프 식</code>으로 온도에서만 계산됩니다. 농도·부피·촉매·불활성 기체는 K 계산식에 아예 들어가지 않습니다</li>
+      <li>K 눈금은 <b>로그</b>입니다. 실제 반응 엔탈피를 쓰기 때문에 좁은 온도 범위에서도 K가 수백~수만 배로 벌어집니다. 선형 막대로 그리면 이 크기를 학생이 읽지 못합니다 — "온도를 조금 올렸는데 왜 이렇게 변하나"를 이야기할 자리입니다</li>
       <li>기체 몰수 차이가 0인 <code>H₂ + I₂ ⇌ 2HI</code>는 부피를 바꿔도 Q가 변하지 않아 평형이 이동하지 않습니다</li>
       <li>발열 반응은 온도를 올리면 K가 <b>작아져</b> 역방향으로, 흡열 반응은 K가 커져 정방향으로 갑니다</li>
       <li>이동 방향은 매 순간 <code>Q</code>와 <code>K</code>의 비교로 결정됩니다. Q &lt; K이면 정방향입니다</li>
@@ -495,6 +505,24 @@ function updateUI(){
   $('vQ').textContent=fmt(Q);
   $('vK').textContent=fmt(K);
   $('vP').textContent=pressure().toFixed(2);
+
+  // K는 온도에 지수적으로 반응한다 — 로그 눈금으로 어디쯤인지 보여 준다
+  const Klo=Kof(rxn.Tmin), Khi=Kof(rxn.Tmax), K0=rxn.K0;
+  const lo=Math.log10(Math.min(Klo,Khi)), hi=Math.log10(Math.max(Klo,Khi));
+  const pos=(hi-lo)>1e-9 ? (Math.log10(K)-lo)/(hi-lo) : 0.5;
+  $('kbar').style.left=(Math.max(0,Math.min(1,pos))*100)+'%';
+  const p0=(hi-lo)>1e-9 ? (Math.log10(K0)-lo)/(hi-lo) : 0.5;
+  $('kT0').style.left=(Math.max(0,Math.min(1,p0))*100)+'%';
+  $('kT0').title='기준 온도 '+rxn.T0+' K';
+  const asc=Khi>=Klo;
+  $('kLo').textContent='K '+fmt(asc?Klo:Khi)+' @ '+(asc?rxn.Tmin:rxn.Tmax)+'K';
+  $('kHi').textContent='K '+fmt(asc?Khi:Klo)+' @ '+(asc?rxn.Tmax:rxn.Tmin)+'K';
+  const x=K/K0;
+  $('vKx').textContent='기준 '+rxn.T0+'K 대비 ×'+(x>=100||x<0.01?fmt(x):x.toFixed(2));
+  const span=Math.max(Khi,Klo)/Math.max(Math.min(Khi,Klo),1e-30);
+  $('kNote').textContent='온도만이 이 값을 바꿉니다. 촉매도, 농도도, 부피도 바꾸지 못합니다. '
+    +'위 눈금은 로그입니다 — 이 반응의 K는 '+rxn.Tmin+'~'+rxn.Tmax+' K 사이에서 '
+    +fmt(span)+'배까지 벌어집니다.';
 
   const rel=Math.abs(Q-K)/Math.max(K,1e-12);
   let dir;

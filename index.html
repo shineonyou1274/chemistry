@@ -23,6 +23,17 @@
   }
   body.project{--fs:20.25px}
 
+  /* ── 건너뛰기 — 평소엔 안 보이고 탭하면 나온다 ── */
+  .skip{
+    position:fixed;left:12px;top:-70px;z-index:70;
+    background:var(--ink);color:#fff;border:1px solid var(--ink);border-radius:0 0 7px 7px;
+    padding:10px 16px;font-family:var(--sans);font-size:.87em;font-weight:600;
+    text-decoration:none;transition:top .12s;cursor:pointer;
+  }
+  .skip:focus{top:0;outline:2px solid var(--particle);outline-offset:2px}
+  .skip + .skip:focus{left:190px}
+  #wrap:focus{outline:none}
+
   /* ── 상단 바 ── */
   .topbar{
     position:sticky;top:0;z-index:40;background:rgba(233,236,239,.94);
@@ -243,6 +254,11 @@
   .shortp-h span{font-size:.8em;color:var(--muted)}
   .shortp pre.code{background:#F5F7F9}
 
+  .fallback{border:1px solid #EFCFC8;background:#FDF3F1;border-radius:9px;padding:14px 16px;margin-top:16px}
+  .fallback b{font-size:.93em;color:#8A4034}
+  .fallback p{margin:6px 0 0;font-size:.86em;color:#8A4034;line-height:1.6}
+  .fallback .hint{color:#A2685C}
+
   /* ── 노트 박스 ── */
   .note{background:#FDFBF4;border:1px solid #E8DFC4;border-radius:9px;padding:15px 18px;margin-bottom:16px}
   .note h4{font-size:.88em;margin:0 0 8px;color:#4A4232;letter-spacing:.01em}
@@ -396,6 +412,9 @@
 </head>
 <body>
 
+<a class="skip" href="#wrap">본문으로 건너뛰기</a>
+<button class="skip" id="skipRecord" type="button">기록 칸으로 바로 가기</button>
+
 <div class="teacher-flag">강사 모드 — 전체 잠금이 해제되어 있습니다. 개인 기기에서는 잠금이 그대로입니다</div>
 
 <header class="topbar">
@@ -444,7 +463,7 @@
   </div>
 </header>
 
-<div class="wrap" id="wrap"></div>
+<div class="wrap" id="wrap" tabindex="-1"></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -491,6 +510,7 @@ const SETS = [
   no:1, title:'기체 분자 운동', pattern:'입자 애니메이션',
   hook:'보이지 않는 충돌이 압력이 된다',
   sim:'sims/gas.html', simName:'기체분자운동_시뮬레이션.html', ready:true,
+  fallback:'sims/gas-flawed.html',
   why:'압력은 실험실에서 눈금으로만 보인다. 그 눈금이 어디서 오는지는 안 보인다. 입자 하나하나가 벽을 때리는 것이 압력이라는 연결은 그림으로는 안 되고 움직여야만 된다.',
   varsControl:'온도, 부피, 입자 수',
   varsObserve:'압력, 평균 제곱근 속력, 벽면 충돌 횟수, PV/nT',
@@ -992,6 +1012,13 @@ function stepBody(s, i){
          +'<p class="hint">완성본을 본 사람이 "나도 만들고 싶은데 뭐라고 하지"라고 물으면 이걸 주세요. '
          +'무너지면 안 되는 것만 남겼습니다. 위 전문과 이걸로 각각 만들어 비교해 보면 '
          +'나머지 칸이 무엇을 사는지 보입니다.</p></div>'
+       + (s.fallback ? '<div class="fallback"><b>AI 생성이 막혔다면</b>'
+           +'<p>인터넷이 끊겼거나 시간이 모자라 결과물을 못 받았어도 다음 단계로 갈 수 있습니다. '
+           +'아래 예비 파일을 <b>내가 받은 결과물이라고 치고</b> S4로 넘어가세요. '
+           +'오류가 일부러 심어져 있습니다. 무엇이 몇 개인지는 적어 두지 않았습니다.</p>'
+           +'<div class="rowbtns"><button data-open="'+s.fallback+'">예비 결과물 열기 ↗</button></div>'
+           +'<p class="hint" style="margin-top:9px">수업에서 학생에게 그대로 보여 주는 용도가 아닙니다. '
+           +'검증을 연습할 재료입니다.</p></div>' : '')
        +'<div class="note" style="margin-top:16px"><h4>다섯 칸 중 하나를 빼고 돌려 보세요</h4>'
        +'<ul><li><b>완료조건</b>을 통째로 지우고 돌리면 무엇이 무너지는지 보세요. 결과가 확 나빠집니다</li>'
        +'<li><b>검증</b>을 지우면 AI가 스스로 확인하지 않고 "완성했습니다"로 끝냅니다</li>'
@@ -1675,6 +1702,24 @@ $('toff').addEventListener('click', ()=>{
   teacher.unlocked=false; teacher.project=false; applyTeacher();
   $('tpanel').classList.remove('open');
   toast('강사 모드를 껐습니다. 잠금이 다시 걸립니다');
+});
+
+/* ═══════════ 건너뛰기 ═══════════
+   기록 칸까지 가려면 상단 메뉴와 단계 칩을 다 지나야 한다.
+   키보드만 쓰는 사람에게는 매번 열네 번이다.                              */
+$('skipRecord').addEventListener('click', ()=>{
+  const pg=document.getElementById(state.ui.page);
+  if(!pg) return;
+  // querySelector 에 콤마 목록을 주면 우선순위가 아니라 문서 순서로 골라 버린다.
+  // 지금 열려 있는 단계를 먼저, 그다음 차례로 찾는다.
+  const vis = el => el && el.getClientRects().length>0;
+  const scope = [...pg.querySelectorAll('.step.cur .record')].find(vis)
+             || [...pg.querySelectorAll('.step.open .record')].find(vis)
+             || [...pg.querySelectorAll('.record')].find(vis)
+             || pg;
+  const el = [...scope.querySelectorAll('textarea, input[type=text], select, input[type=checkbox], button')].find(vis);
+  if(el){ el.focus(); el.scrollIntoView({block:'center'}); }
+  else { pg.setAttribute('tabindex','-1'); pg.focus(); }
 });
 
 /* ═══════════ 유틸 ═══════════ */
