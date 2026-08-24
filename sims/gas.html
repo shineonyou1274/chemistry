@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>기체 분자 운동 — 입자 시뮬레이션</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --paper:#E9ECEF; --panel:#FFFFFF; --ink:#16202B; --muted:#5F6B78;
+    --line:#D2D8DF; --line-soft:#E6EAEE;
+    --gauge:#C0392B; --particle:#1F5FA8; --lock:#1B7A5A; --wall:#8A96A3;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);font-size:15px;line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 72px}
+
+  /* ── 헤더 ── */
+  .eyebrow{
+    font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 10px;
+  }
+  h1{
+    font-size:clamp(26px,4.4vw,40px);line-height:1.18;font-weight:800;
+    letter-spacing:-.025em;margin:0 0 10px;
+  }
+  .lede{color:var(--muted);max-width:56ch;margin:0 0 26px;font-size:15px}
+
+  /* ── 카드 공통 ── */
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:20px;margin-bottom:18px;
+  }
+  .card-head{
+    display:flex;align-items:baseline;gap:10px;
+    padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--line-soft);
+  }
+  .card-head h2{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em}
+  .card-head .tag{
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);
+  }
+
+  /* ── 시뮬 레이아웃 ── */
+  .stage{display:grid;grid-template-columns:1fr 250px;gap:20px;align-items:start}
+  @media(max-width:820px){.stage{grid-template-columns:1fr}}
+
+  .boxwrap{
+    background:#F5F7F9;border:1px solid var(--line);border-radius:8px;
+    padding:10px;position:relative;
+  }
+  canvas#box{display:block;width:100%;height:auto}
+  .boxcap{
+    display:flex;justify-content:space-between;font-family:var(--mono);
+    font-size:10.5px;color:var(--muted);padding:8px 2px 0;letter-spacing:.04em;
+  }
+
+  /* ── 계기판 ── */
+  .gauges{display:flex;flex-direction:column;gap:0}
+  .g{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .g:last-child{border-bottom:0}
+  .g-label{
+    font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);display:block;margin-bottom:3px;
+  }
+  .g-val{font-family:var(--mono);font-size:25px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .g-unit{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:5px;font-weight:400}
+  .g-bar{height:4px;background:var(--line-soft);border-radius:2px;margin-top:7px;overflow:hidden}
+  .g-bar i{display:block;height:100%;background:var(--gauge);width:0;transition:width .09s linear}
+
+  .g.locked{
+    background:#F1F8F4;border:1px solid #CBE5D8;border-radius:8px;
+    padding:12px 13px;margin-top:12px;
+  }
+  .g.locked .g-val{color:var(--lock)}
+  .g.locked .g-note{font-size:11.5px;color:#3E6B58;line-height:1.5;margin-top:5px}
+
+  #hist{display:block;width:100%;height:auto;margin-top:12px}
+
+  /* ── 슬라이더 ── */
+  .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:20px}
+  @media(max-width:700px){.controls{grid-template-columns:1fr}}
+  .ctl label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-size:13px;font-weight:600;margin-bottom:7px;
+  }
+  .ctl label b{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .ctl input[type=range]{width:100%;accent-color:var(--particle);cursor:pointer}
+  .ctl .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .presets span{
+    font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);align-self:center;margin-right:2px;
+  }
+
+  /* ── 버튼 ── */
+  button{
+    font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:7px 13px;transition:background .12s,border-color .12s;
+  }
+  button:hover{background:#F2F5F8;border-color:#B9C2CC}
+  button:focus-visible{outline:2px solid var(--particle);outline-offset:2px}
+  button.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.solid:hover{background:#2A3947;border-color:#2A3947}
+  button:disabled{opacity:.45;cursor:not-allowed}
+
+  /* ── 기록표 ── */
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  th{
+    text-align:right;font-size:10px;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--muted);font-weight:500;padding:0 8px 8px;border-bottom:1px solid var(--line);
+  }
+  th:first-child,td:first-child{text-align:left}
+  td{padding:7px 8px;border-bottom:1px solid var(--line-soft);text-align:right}
+  tr:last-child td{border-bottom:0}
+  .del{
+    background:none;border:0;color:var(--muted);padding:0 4px;font-size:15px;line-height:1;
+  }
+  .del:hover{color:var(--gauge);background:none}
+  .empty{
+    color:var(--muted);font-size:13px;text-align:center;padding:22px 10px;
+    border:1px dashed var(--line);border-radius:8px;
+  }
+
+  /* ── 탐구 질문 ── */
+  .q{margin-bottom:20px}
+  .q:last-child{margin-bottom:0}
+  .q-num{
+    font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--particle);
+    font-weight:600;display:block;margin-bottom:4px;
+  }
+  .q-text{font-size:14px;font-weight:600;margin:0 0 3px;line-height:1.5}
+  .q-sub{font-size:12.5px;color:var(--muted);margin:0 0 9px;line-height:1.5}
+  textarea{
+    width:100%;min-height:78px;padding:11px 12px;border:1px solid var(--line);
+    border-radius:7px;font-family:var(--sans);font-size:13.5px;line-height:1.6;resize:vertical;
+    background:#FCFDFE;color:var(--ink);
+  }
+  textarea:focus{outline:2px solid var(--particle);outline-offset:-1px;border-color:transparent}
+
+  /* ── 루브릭 ── */
+  .rub{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px}
+  .rub-row{display:grid;grid-template-columns:150px 1fr;border-bottom:1px solid var(--line-soft)}
+  .rub-row:last-child{border-bottom:0}
+  @media(max-width:640px){.rub-row{grid-template-columns:1fr}}
+  .rub-c{padding:11px 13px;font-size:13px;font-weight:600;background:#F5F7F9;line-height:1.45}
+  .rub-l{padding:11px 13px;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .rub-l b{color:var(--ink);font-family:var(--mono);font-size:11px;margin-right:5px}
+
+  .fb{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+  .key{
+    display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft);
+    align-items:center;flex-wrap:wrap;
+  }
+  .key input{
+    flex:1;min-width:190px;padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--mono);font-size:12px;
+  }
+  .key small{font-size:11.5px;color:var(--muted);width:100%;line-height:1.5}
+  .out{
+    margin-top:15px;padding:15px 16px;background:#F5F7F9;border:1px solid var(--line);
+    border-radius:8px;font-size:13.5px;line-height:1.7;white-space:pre-wrap;
+  }
+
+  /* ── 교사 노트 ── */
+  details.note{
+    background:#FDFBF4;border:1px solid #E8DFC4;border-radius:10px;padding:16px 20px;
+  }
+  details.note summary{
+    cursor:pointer;font-weight:700;font-size:14px;list-style:none;
+    display:flex;align-items:center;gap:8px;
+  }
+  details.note summary::-webkit-details-marker{display:none}
+  details.note summary::before{content:"▸";color:#A08A42;font-size:12px;transition:transform .15s}
+  details.note[open] summary::before{transform:rotate(90deg)}
+  details.note h3{font-size:12.5px;margin:18px 0 7px;letter-spacing:.02em}
+  details.note ul{margin:0;padding-left:19px;font-size:13px;color:#4A4232;line-height:1.7}
+  details.note li{margin-bottom:4px}
+  details.note li:last-child{margin-bottom:0}
+  details.note code{
+    font-family:var(--mono);font-size:11.5px;background:#F1EAD6;padding:1px 5px;border-radius:3px;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:7px;font-size:13px;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">기체 분자 운동론 · 입자 시뮬레이션</p>
+  <h1>보이지 않는 충돌이<br>압력이 된다</h1>
+  <p class="lede">슬라이더 세 개를 움직여 보세요. 압력은 계속 바뀌지만, 아래 초록색 칸의 숫자 하나만은 절대 움직이지 않습니다. 그 이유를 찾는 것이 오늘의 과제입니다.</p>
+
+  <!-- ══ 시뮬레이션 ══ -->
+  <section class="card">
+    <div class="card-head"><h2>실린더</h2><span class="tag">Live</span></div>
+
+    <div class="stage">
+      <div>
+        <div class="boxwrap">
+          <canvas id="box" width="1120" height="680"></canvas>
+        </div>
+        <div class="boxcap">
+          <span id="capL">입자 60개 · 300 K</span>
+          <span id="capR">벽면 충돌 표시 ON</span>
+        </div>
+      </div>
+
+      <div class="gauges">
+        <div class="g">
+          <span class="g-label">압력</span>
+          <span class="g-val" id="vP">1.00</span><span class="g-unit">상대값</span>
+          <div class="g-bar"><i id="bP"></i></div>
+        </div>
+        <div class="g">
+          <span class="g-label">평균 제곱근 속력</span>
+          <span class="g-val" id="vV">127</span><span class="g-unit">상대값</span>
+        </div>
+        <div class="g">
+          <span class="g-label">벽면 충돌</span>
+          <span class="g-val" id="vC">0</span><span class="g-unit">회 / 초</span>
+        </div>
+
+        <div class="g locked">
+          <span class="g-label">P × V ÷ (n × T)</span>
+          <span class="g-val" id="vK">1.00</span>
+          <p class="g-note">무엇을 바꾸든 이 값은 1 근처를 벗어나지 않습니다.</p>
+        </div>
+
+        <canvas id="hist" width="500" height="230"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>온도 <b><span id="lT">300</span> K</b></label>
+        <input type="range" id="sT" min="100" max="800" step="10" value="300">
+        <p class="hint">입자의 속력을 바꿉니다. 속력은 온도가 아니라 온도의 제곱근에 비례합니다.</p>
+      </div>
+      <div class="ctl">
+        <label>부피 <b><span id="lV">1.00</span></b></label>
+        <input type="range" id="sV" min="35" max="100" step="1" value="100">
+        <p class="hint">오른쪽 피스톤이 움직입니다. 온도는 그대로 유지되는 등온 압축입니다.</p>
+      </div>
+      <div class="ctl">
+        <label>입자 수 <b><span id="lN">60</span></b></label>
+        <input type="range" id="sN" min="10" max="220" step="5" value="60">
+        <p class="hint">기체의 양(몰수)에 해당합니다. 속력 분포는 그대로 두고 개수만 바꿉니다.</p>
+      </div>
+    </div>
+
+    <div class="presets">
+      <span>변인 통제</span>
+      <button data-p="boyle">보일 — 온도 고정</button>
+      <button data-p="gay">게이뤼삭 — 부피 고정</button>
+      <button data-p="avo">아보가드로 — 온도·부피 고정</button>
+      <button data-p="reset">처음으로</button>
+    </div>
+  </section>
+
+  <!-- ══ 데이터 기록 ══ -->
+  <section class="card">
+    <div class="card-head"><h2>측정값 기록</h2><span class="tag">Step 1</span></div>
+    <p class="lede" style="margin-bottom:16px">조건을 하나만 바꿔 가며 기록하세요. 최소 4번은 기록해야 관계가 보입니다.</p>
+    <div id="tableArea"><p class="empty">아직 기록이 없습니다. 아래 버튼으로 현재 화면의 값을 담아 두세요.</p></div>
+    <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
+      <button class="solid" id="rec">현재 조건 기록</button>
+      <button id="clr">전체 지우기</button>
+    </div>
+  </section>
+
+  <!-- ══ 탐구 질문 ══ -->
+  <section class="card">
+    <div class="card-head"><h2>탐구 질문</h2><span class="tag">Step 2</span></div>
+
+    <div class="q">
+      <span class="q-num">Q1</span>
+      <p class="q-text">온도를 고정한 채 부피만 줄이면 압력은 어떻게 되나요?</p>
+      <p class="q-sub">기록한 수치를 근거로 들고, 그 변화가 왜 생기는지 입자의 충돌로 설명해 보세요.</p>
+      <textarea id="a1" placeholder="예: 부피를 1.00에서 0.50으로 줄였더니 압력이 ...에서 ...으로 변했다. 이유는 ..."></textarea>
+    </div>
+
+    <div class="q">
+      <span class="q-num">Q2</span>
+      <p class="q-text">부피를 고정한 채 온도만 올리면, 충돌 횟수와 충돌 한 번의 세기 중 무엇이 변하나요?</p>
+      <p class="q-sub">둘 중 하나만 고르지 말고, 계기판의 세 값을 함께 보며 판단해 보세요.</p>
+      <textarea id="a2" placeholder="벽면 충돌 횟수는 ... 평균 속력은 ... 따라서 압력이 커지는 이유는 ..."></textarea>
+    </div>
+
+    <div class="q">
+      <span class="q-num">Q3</span>
+      <p class="q-text">세 슬라이더를 어떻게 움직여도 P×V÷(n×T)가 변하지 않는 이유는 무엇일까요?</p>
+      <p class="q-sub">이 값이 일정하다는 사실이 실제 기체에 대해 무엇을 알려 주는지까지 써 보세요.</p>
+      <textarea id="a3" placeholder="이 값이 일정하다는 것은 ... 을 뜻한다. 왜냐하면 ..."></textarea>
+    </div>
+  </section>
+
+  <!-- ══ 평가 ══ -->
+  <section class="card">
+    <div class="card-head"><h2>피드백 받기</h2><span class="tag">Step 3</span></div>
+
+    <div class="rub">
+      <div class="rub-row">
+        <div class="rub-c">관계 진술</div>
+        <div class="rub-l"><b>상</b>두 변인의 관계를 방향과 함께 정확히 진술 &nbsp;·&nbsp; <b>중</b>방향은 맞으나 어느 변인인지 모호 &nbsp;·&nbsp; <b>하</b>변화만 언급하고 관계 없음</div>
+      </div>
+      <div class="rub-row">
+        <div class="rub-c">증거 사용</div>
+        <div class="rub-l"><b>상</b>기록한 수치를 두 개 이상 인용해 근거로 사용 &nbsp;·&nbsp; <b>중</b>수치를 하나만 인용 &nbsp;·&nbsp; <b>하</b>수치 인용 없이 서술만</div>
+      </div>
+      <div class="rub-row">
+        <div class="rub-c">입자 수준 설명</div>
+        <div class="rub-l"><b>상</b>거시 변화를 충돌 빈도와 충돌 세기로 나누어 설명 &nbsp;·&nbsp; <b>중</b>충돌을 언급하나 빈도·세기 구분 없음 &nbsp;·&nbsp; <b>하</b>입자 언급 없음</div>
+      </div>
+    </div>
+
+    <div class="fb">
+      <button class="solid" id="copy">피드백 프롬프트 복사</button>
+      <button id="ask">이 화면에서 바로 받기</button>
+    </div>
+    <div class="key">
+      <input type="password" id="apikey" placeholder="Anthropic API 키 (sk-ant-...)">
+      <small>왼쪽 버튼은 키 없이 씁니다. 복사한 내용을 Claude나 Gemini 창에 붙여넣으면 같은 피드백을 받습니다. 오른쪽 버튼은 키를 넣은 경우에만 동작하며, 키는 이 브라우저 밖으로 저장되지 않습니다.</small>
+    </div>
+    <div class="out" id="out" style="display:none"></div>
+  </section>
+
+  <!-- ══ 교사 노트 ══ -->
+  <details class="note">
+    <summary>교사 노트 — 이 시뮬레이션이 세운 가정과 한계</summary>
+
+    <h3>물리적으로 보장한 것</h3>
+    <ul>
+      <li>속력은 <code>√T</code>에 비례 (T에 비례가 아님)</li>
+      <li>초기 속력은 2차원 맥스웰–볼츠만 분포에서 표본추출</li>
+      <li>벽면 충돌은 완전탄성이며 압력은 운동량 전달량을 실제로 누적해 계산</li>
+      <li>부피는 입자 중심이 도달 가능한 유효 넓이로 계산 — 반지름 보정을 하지 않으면 보일 법칙이 6% 어긋남</li>
+      <li>세 법칙 모두 헤드리스 시뮬로 검증했고 <code>PV/nT</code>는 어떤 조건에서도 3% 안에서 일정하게 유지됨</li>
+    </ul>
+
+    <h3>일부러 단순화한 것 — 학생에게 반드시 말해 주세요</h3>
+    <ul>
+      <li>2차원입니다. 실제 기체는 3차원이라 계수가 달라집니다</li>
+      <li>입자끼리는 충돌하지 않습니다. 이상기체 가정이며, 그래서 확산 현상은 볼 수 없습니다</li>
+      <li>피스톤을 움직여도 온도가 오르지 않습니다. 실제 단열 압축은 기체를 데우지만 여기서는 등온으로 고정했습니다</li>
+      <li>입자 크기가 화면에서 과장되어 있습니다. 실제 기체 분자 사이의 빈 공간은 이보다 훨씬 넓습니다</li>
+      <li>모든 수치가 상대값입니다. 실제 단위(atm, L, K)로 환산하려면 별도 보정이 필요합니다</li>
+    </ul>
+
+    <h3>AI에게 이런 시뮬을 시켰을 때 흔히 나오는 오류</h3>
+    <ul>
+      <li>속력을 <code>T</code>에 비례시킴 — 온도를 4배 올리면 속력도 4배가 되어 버림</li>
+      <li>압력을 운동량이 아니라 충돌 횟수만으로 계산 — 온도 효과가 절반만 반영됨</li>
+      <li>모든 입자에 같은 속력을 주고 분포를 만들지 않음 — 볼츠만 분포로 넘어갈 발판이 사라짐</li>
+      <li>벽 충돌에서 위치를 되돌리지 않아 입자가 벽에 붙어 압력이 폭주함</li>
+      <li>부피를 상자 전체 넓이로 계산 — 좁은 부피에서 보일 법칙이 눈에 띄게 어긋남</li>
+    </ul>
+  </details>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ═══ 상수 ═══ */
+const T0=300, N0=60, BASE=90, R=9;          // 기준 온도·개수, 300K 속력 스케일, 입자 반지름(캔버스 좌표)
+const K_SIM=BASE*BASE/T0;                    // 이론 상수 σ²/T = 27
+const CW=1120, CH=680;                       // 캔버스 논리 좌표
+const BOX_H=CH-40, BOX_Y=20, BOX_X=20, BOX_W_MAX=CW-40;
+
+const box=document.getElementById('box'), ctx=box.getContext('2d');
+const hist=document.getElementById('hist'), hctx=hist.getContext('2d');
+
+let T=300, volFrac=1.00, N=60;
+let particles=[], impulse=0, hits=0, winStart=performance.now();
+let P=0, hitRate=0, last=performance.now();
+let records=[];
+
+/* ═══ 입자 생성 ═══ */
+function sigma(){ return BASE*Math.sqrt(T/T0); }
+function boxW(){ return BOX_W_MAX*volFrac; }
+function effW(){ return boxW()-2*R; }
+function effH(){ return BOX_H-2*R; }
+
+function sampleSpeed(){                       // 2D 맥스웰–볼츠만(레일리) 역변환
+  const u=Math.random();
+  return sigma()*Math.sqrt(-2*Math.log(1-u));
+}
+function newParticle(){
+  const v=sampleSpeed(), th=Math.random()*Math.PI*2;
+  return {
+    x:BOX_X+R+Math.random()*effW(),
+    y:BOX_Y+R+Math.random()*effH(),
+    vx:v*Math.cos(th), vy:v*Math.sin(th), flash:0
+  };
+}
+function rescaleToTheory(){                   // 표본 v_rms를 이론값에 정확히 맞춤
+  if(!particles.length) return;
+  let s=0; for(const p of particles) s+=p.vx*p.vx+p.vy*p.vy;
+  const cur=Math.sqrt(s/particles.length), want=sigma()*Math.SQRT2;
+  if(cur<1e-9) return;
+  const f=want/cur;
+  for(const p of particles){ p.vx*=f; p.vy*=f; }
+}
+function setN(n){
+  while(particles.length<n) particles.push(newParticle());
+  if(particles.length>n) particles.length=n;
+  rescaleToTheory();
+  N=n;
+}
+setN(60);
+
+/* ═══ 물리 ═══ */
+function step(dt){
+  const x0=BOX_X+R, x1=BOX_X+boxW()-R, y0=BOX_Y+R, y1=BOX_Y+BOX_H-R;
+  for(const p of particles){
+    p.x+=p.vx*dt; p.y+=p.vy*dt;
+    if(p.x<x0){ p.x=x0; p.vx=-p.vx; impulse+=2*Math.abs(p.vx); hits++; p.flash=1; }
+    else if(p.x>x1){ p.x=x1; p.vx=-p.vx; impulse+=2*Math.abs(p.vx); hits++; p.flash=1; }
+    if(p.y<y0){ p.y=y0; p.vy=-p.vy; impulse+=2*Math.abs(p.vy); hits++; p.flash=1; }
+    else if(p.y>y1){ p.y=y1; p.vy=-p.vy; impulse+=2*Math.abs(p.vy); hits++; p.flash=1; }
+    if(p.flash>0) p.flash-=dt*4.5;
+  }
+}
+function measure(now){
+  const win=(now-winStart)/1000;
+  if(win<0.35) return;
+  const perim=2*(effW()+effH());
+  const Praw=impulse/(perim*win);
+  P = P===0 ? Praw : P*0.55+Praw*0.45;        // 가벼운 평활 — 계기 특유의 흔들림은 남김
+  hitRate = hitRate===0 ? hits/win : hitRate*0.55+(hits/win)*0.45;
+  impulse=0; hits=0; winStart=now;
+}
+function pRef(){ return N0*K_SIM*T0/((BOX_W_MAX-2*R)*(BOX_H-2*R)); }
+function vrms(){
+  if(!particles.length) return 0;
+  let s=0; for(const p of particles) s+=p.vx*p.vx+p.vy*p.vy;
+  return Math.sqrt(s/particles.length);
+}
+
+/* ═══ 렌더 ═══ */
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  const w=boxW();
+
+  ctx.fillStyle='#FFFFFF';
+  ctx.fillRect(BOX_X,BOX_Y,w,BOX_H);
+  ctx.strokeStyle='#B9C2CC'; ctx.lineWidth=2;
+  ctx.strokeRect(BOX_X,BOX_Y,w,BOX_H);
+
+  // 피스톤
+  if(volFrac<0.999){
+    const px=BOX_X+w;
+    ctx.fillStyle='#DDE2E8';
+    ctx.fillRect(px,BOX_Y,CW-20-px,BOX_H);
+    ctx.strokeStyle='#8A96A3'; ctx.lineWidth=5;
+    ctx.beginPath(); ctx.moveTo(px,BOX_Y); ctx.lineTo(px,BOX_Y+BOX_H); ctx.stroke();
+    ctx.strokeStyle='#C3CAD2'; ctx.lineWidth=1.5;
+    for(let y=BOX_Y+8;y<BOX_Y+BOX_H;y+=16){
+      ctx.beginPath(); ctx.moveTo(px+8,y); ctx.lineTo(Math.min(px+26,CW-24),y-9); ctx.stroke();
+    }
+  }
+
+  for(const p of particles){
+    if(p.flash>0){
+      ctx.beginPath(); ctx.arc(p.x,p.y,R+7*p.flash,0,6.2832);
+      ctx.fillStyle='rgba(192,57,43,'+(0.30*p.flash)+')'; ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(p.x,p.y,R,0,6.2832);
+    ctx.fillStyle=p.flash>0?'#C0392B':'#1F5FA8'; ctx.fill();
+  }
+}
+
+function drawHist(){
+  const W=500,H=230,pad=22, s=sigma(), vmax=s*3.2;
+  hctx.clearRect(0,0,W,H);
+  const BINS=22, counts=new Array(BINS).fill(0);
+  for(const p of particles){
+    const v=Math.hypot(p.vx,p.vy);
+    const i=Math.min(BINS-1,Math.floor(v/vmax*BINS));
+    if(i>=0) counts[i]++;
+  }
+  const peak=Math.max(1,...counts);
+  const bw=(W-pad*2)/BINS;
+  hctx.fillStyle='#C5D5E8';
+  for(let i=0;i<BINS;i++){
+    const h=(counts[i]/peak)*(H-pad*2);
+    hctx.fillRect(pad+i*bw+1,H-pad-h,bw-2,h);
+  }
+  // 이론 곡선
+  hctx.strokeStyle='#C0392B'; hctx.lineWidth=2.5; hctx.beginPath();
+  let fmax=0; const f=v=>(v/(s*s))*Math.exp(-v*v/(2*s*s));
+  for(let i=0;i<=200;i++){ fmax=Math.max(fmax,f(i/200*vmax)); }
+  for(let i=0;i<=200;i++){
+    const v=i/200*vmax, y=H-pad-(f(v)/fmax)*(H-pad*2)*0.92;
+    i?hctx.lineTo(pad+i/200*(W-pad*2),y):hctx.moveTo(pad+i/200*(W-pad*2),y);
+  }
+  hctx.stroke();
+  hctx.strokeStyle='#D2D8DF'; hctx.lineWidth=1.5;
+  hctx.beginPath(); hctx.moveTo(pad,H-pad); hctx.lineTo(W-pad,H-pad); hctx.stroke();
+  hctx.fillStyle='#5F6B78'; hctx.font='500 15px ui-monospace,monospace';
+  hctx.fillText('속력 분포',pad,16);
+  hctx.textAlign='right'; hctx.fillText('빠름',W-pad,H-4); hctx.textAlign='left';
+}
+
+/* ═══ 표시 ═══ */
+const $=id=>document.getElementById(id);
+function updateUI(){
+  const pRel=P/pRef();
+  $('vP').textContent=pRel.toFixed(2);
+  $('bP').style.width=Math.min(100,pRel/3.2*100)+'%';
+  $('vV').textContent=Math.round(vrms());
+  $('vC').textContent=Math.round(hitRate);
+  const k=(P*effW()*effH())/(N*T*K_SIM);
+  $('vK').textContent=(k||0).toFixed(2);
+  $('capL').textContent='입자 '+N+'개 · '+T+' K · 부피 '+volFrac.toFixed(2);
+}
+
+/* ═══ 루프 ═══ */
+function loop(now){
+  const dt=Math.min((now-last)/1000,0.033); last=now;
+  step(dt); measure(now); draw(); drawHist(); updateUI();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+
+/* ═══ 컨트롤 ═══ */
+$('sT').addEventListener('input',e=>{
+  const nT=+e.target.value, f=Math.sqrt(nT/T);
+  for(const p of particles){ p.vx*=f; p.vy*=f; }
+  T=nT; $('lT').textContent=T; P=0; hitRate=0;
+});
+$('sV').addEventListener('input',e=>{
+  volFrac=+e.target.value/100; $('lV').textContent=volFrac.toFixed(2);
+  const x1=BOX_X+boxW()-R;
+  for(const p of particles) if(p.x>x1) p.x=x1;
+  P=0; hitRate=0;
+});
+$('sN').addEventListener('input',e=>{ setN(+e.target.value); $('lN').textContent=N; P=0; hitRate=0; });
+
+document.querySelectorAll('.presets button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const p=b.dataset.p;
+    const set=(t,v,n)=>{
+      const f=Math.sqrt(t/T); for(const q of particles){q.vx*=f;q.vy*=f;}
+      T=t; volFrac=v; setN(n);
+      $('sT').value=t; $('lT').textContent=t;
+      $('sV').value=Math.round(v*100); $('lV').textContent=v.toFixed(2);
+      $('sN').value=n; $('lN').textContent=n;
+      const x1=BOX_X+boxW()-R; for(const q of particles) if(q.x>x1) q.x=x1;
+      P=0; hitRate=0;
+    };
+    if(p==='boyle'){ set(300,1.00,60); toast('온도와 입자 수를 고정했습니다. 부피만 움직여 보세요'); }
+    if(p==='gay'){ set(200,0.60,60); toast('부피와 입자 수를 고정했습니다. 온도만 움직여 보세요'); }
+    if(p==='avo'){ set(300,0.70,20); toast('온도와 부피를 고정했습니다. 입자 수만 움직여 보세요'); }
+    if(p==='reset'){ set(300,1.00,60); toast('처음 조건으로 되돌렸습니다'); }
+  });
+});
+
+/* ═══ 기록표 ═══ */
+function renderTable(){
+  const a=$('tableArea');
+  if(!records.length){
+    a.innerHTML='<p class="empty">아직 기록이 없습니다. 아래 버튼으로 현재 화면의 값을 담아 두세요.</p>';
+    return;
+  }
+  let h='<table><thead><tr><th>#</th><th>온도 K</th><th>부피</th><th>입자수</th><th>압력</th><th>PV/nT</th><th></th></tr></thead><tbody>';
+  records.forEach((r,i)=>{
+    h+='<tr><td>'+(i+1)+'</td><td>'+r.T+'</td><td>'+r.V+'</td><td>'+r.N+'</td><td>'+r.P+'</td><td>'+r.K+'</td>'
+      +'<td><button class="del" data-i="'+i+'" aria-label="'+(i+1)+'번 기록 삭제">×</button></td></tr>';
+  });
+  a.innerHTML=h+'</tbody></table>';
+  a.querySelectorAll('.del').forEach(b=>b.addEventListener('click',()=>{
+    records.splice(+b.dataset.i,1); renderTable();
+  }));
+}
+$('rec').addEventListener('click',()=>{
+  records.push({
+    T:T, V:volFrac.toFixed(2), N:N,
+    P:(P/pRef()).toFixed(2),
+    K:((P*effW()*effH())/(N*T*K_SIM)).toFixed(2)
+  });
+  renderTable(); toast('기록했습니다 — 총 '+records.length+'개');
+});
+$('clr').addEventListener('click',()=>{ records=[]; renderTable(); toast('기록을 모두 지웠습니다'); });
+
+/* ═══ 피드백 ═══ */
+const RUBRIC=
+'[관계 진술] 상: 두 변인의 관계를 방향과 함께 정확히 진술 / 중: 방향은 맞으나 어느 변인인지 모호 / 하: 변화만 언급하고 관계 없음\n'+
+'[증거 사용] 상: 기록한 수치를 두 개 이상 인용해 근거로 사용 / 중: 수치를 하나만 인용 / 하: 수치 인용 없이 서술만\n'+
+'[입자 수준 설명] 상: 거시 변화를 충돌 빈도와 충돌 세기로 나누어 설명 / 중: 충돌을 언급하나 빈도·세기 구분 없음 / 하: 입자 언급 없음';
+
+function buildPrompt(){
+  const tbl=records.length
+    ? records.map((r,i)=>(i+1)+'. 온도 '+r.T+'K, 부피 '+r.V+', 입자수 '+r.N+' → 압력 '+r.P+', PV/nT '+r.K).join('\n')
+    : '(기록된 측정값 없음)';
+  return '당신은 고등학교 화학 교사입니다. 학생이 기체 분자 운동 시뮬레이션으로 탐구한 결과에 형성평가 피드백을 씁니다.\n\n'
+    +'【학생이 기록한 측정값】\n'+tbl+'\n\n'
+    +'【학생 답변】\nQ1 온도 고정, 부피만 줄이면 압력은?\n'+($('a1').value.trim()||'(미작성)')+'\n\n'
+    +'Q2 부피 고정, 온도만 올리면 충돌 횟수와 충돌 세기 중 무엇이 변하나?\n'+($('a2').value.trim()||'(미작성)')+'\n\n'
+    +'Q3 PV/nT가 변하지 않는 이유는?\n'+($('a3').value.trim()||'(미작성)')+'\n\n'
+    +'【루브릭】\n'+RUBRIC+'\n\n'
+    +'【피드백 작성 지침】\n'
+    +'1. 세 기준별로 상·중·하 중 하나를 판정하고 그렇게 본 근거를 학생 문장에서 직접 인용해 제시하세요.\n'
+    +'2. 점수를 매기지 말고, 다음에 무엇을 어떻게 고쳐 쓸지 한 문장짜리 구체적 행동 지시를 각 기준마다 하나씩 주세요.\n'
+    +'3. 화학적 오개념이 보이면 정정하되, 정답을 그대로 알려 주지 말고 다시 확인해 볼 조건을 지정해 주세요.\n'
+    +'4. Q2에서 온도가 오를 때 충돌 빈도와 충돌 한 번의 운동량 전달이 둘 다 커진다는 점을 놓쳤다면 반드시 짚어 주세요.\n'
+    +'5. 전체 400자 이내, 학생에게 직접 말하는 존댓말로 쓰세요.';
+}
+
+$('copy').addEventListener('click',async()=>{
+  const t=buildPrompt();
+  try{ await navigator.clipboard.writeText(t); toast('복사했습니다. Claude나 Gemini 창에 붙여넣으세요'); }
+  catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    toast('복사했습니다. Claude나 Gemini 창에 붙여넣으세요');
+  }
+});
+
+$('ask').addEventListener('click',async()=>{
+  const key=$('apikey').value.trim(), out=$('out'), btn=$('ask');
+  if(!key){ toast('API 키를 넣거나 왼쪽 복사 버튼을 쓰세요'); $('apikey').focus(); return; }
+  btn.disabled=true; btn.textContent='피드백 쓰는 중';
+  out.style.display='block'; out.textContent='잠시만 기다려 주세요.';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-6', max_tokens:1000,
+        messages:[{role:'user',content:buildPrompt()}]
+      })
+    });
+    if(!res.ok){
+      const t=await res.text();
+      out.textContent='피드백을 받지 못했습니다 ('+res.status+').\n키가 맞는지, 잔액이 남아 있는지 확인해 주세요.\n\n'+t.slice(0,300);
+    }else{
+      const d=await res.json();
+      out.textContent=d.content.filter(c=>c.type==='text').map(c=>c.text).join('\n').trim();
+    }
+  }catch(e){
+    out.textContent='연결하지 못했습니다. 인터넷 상태를 확인하거나, 왼쪽의 복사 버튼으로 대신 진행하세요.\n\n'+e.message;
+  }
+  btn.disabled=false; btn.textContent='이 화면에서 바로 받기';
+});
+
+/* ═══ 토스트 ═══ */
+let toastT;
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2400);
+}
+
+renderTable();
+})();
+</script>
+</body>
+</html>

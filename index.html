@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>화학 바이브코딩 실습장</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --paper:#E9ECEF; --panel:#FFFFFF; --ink:#16202B; --muted:#5F6B78;
+    --line:#D2D8DF; --line-soft:#E6EAEE;
+    --gauge:#C0392B; --particle:#1F5FA8; --lock:#1B7A5A;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --fs:15px; --gauge-scale:1;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--sans);font-size:var(--fs);line-height:1.65;
+    -webkit-font-smoothing:antialiased;
+  }
+  body.project{--fs:20.25px}
+
+  /* ── 상단 바 ── */
+  .topbar{
+    position:sticky;top:0;z-index:40;background:rgba(233,236,239,.94);
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);
+  }
+  .topbar-in{max-width:1180px;margin:0 auto;padding:11px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{font-weight:800;letter-spacing:-.02em;font-size:1em;white-space:nowrap}
+  .brand small{
+    display:block;font-family:var(--mono);font-size:.62em;font-weight:500;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+  }
+  nav.pages{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+  nav.pages button{
+    font-family:var(--mono);font-size:.76em;letter-spacing:.05em;padding:6px 10px;
+    border:1px solid transparent;background:none;border-radius:6px;color:var(--muted);
+    cursor:pointer;font-weight:600;white-space:nowrap;
+  }
+  nav.pages button:hover{background:#DFE4E9;color:var(--ink)}
+  nav.pages button.on{background:var(--ink);color:#fff}
+  nav.pages button .pin{color:var(--lock);margin-left:3px}
+  .topbar .acts{display:flex;gap:7px;align-items:center}
+
+  /* ── 버튼 ── */
+  button{
+    font-family:var(--sans);font-size:.87em;font-weight:600;cursor:pointer;
+    background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:6px;padding:7px 13px;transition:background .12s,border-color .12s;
+  }
+  button:hover{background:#F2F5F8;border-color:#B9C2CC}
+  button:focus-visible{outline:2px solid var(--particle);outline-offset:2px}
+  button.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.solid:hover{background:#2A3947;border-color:#2A3947}
+  button.ghost{background:none;border-color:var(--line)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.tiny{font-size:.76em;padding:4px 9px}
+
+  /* ── 강사 모드 ── */
+  .lockbtn{
+    border:1px solid var(--line);background:var(--panel);border-radius:6px;
+    padding:6px 10px;font-size:.95em;line-height:1;cursor:pointer;
+  }
+  body.teacher .lockbtn{background:var(--lock);border-color:var(--lock);color:#fff}
+  .teacher-flag{
+    display:none;background:var(--lock);color:#fff;font-family:var(--mono);
+    font-size:.72em;letter-spacing:.14em;text-transform:uppercase;
+    text-align:center;padding:5px 12px;
+  }
+  body.teacher .teacher-flag{display:block}
+  .tpanel{
+    display:none;max-width:1180px;margin:0 auto;padding:14px 20px;
+    background:#F1F8F4;border-bottom:1px solid #CBE5D8;
+  }
+  .tpanel.open{display:block}
+  .tpanel .row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}
+  .tpanel input{
+    padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--mono);font-size:.82em;width:180px;
+  }
+  .tpanel small{display:block;color:#3E6B58;font-size:.78em;margin-top:8px;line-height:1.55}
+
+  /* ── 저장 알림 ── */
+  .savenudge{
+    display:none;max-width:1180px;margin:0 auto;padding:10px 20px;
+    background:#FDFBF4;border-bottom:1px solid #E8DFC4;
+    font-size:.87em;color:#6B5D33;align-items:center;gap:12px;
+  }
+  .savenudge.on{display:flex}
+  .savenudge b{color:#4A4232}
+
+  /* ── 레이아웃 ── */
+  .wrap{max-width:1180px;margin:0 auto;padding:26px 20px 90px}
+  .page{display:none}
+  .page.on{display:block}
+  .eyebrow{
+    font-family:var(--mono);font-size:.73em;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 10px;
+  }
+  h1{font-size:clamp(26px,4.2vw,40px);line-height:1.18;font-weight:800;letter-spacing:-.025em;margin:0 0 10px}
+  body.project h1{font-size:clamp(32px,5vw,52px)}
+  .lede{color:var(--muted);max-width:58ch;margin:0 0 26px}
+  h2.sec{font-size:1.05em;font-weight:700;margin:34px 0 14px;letter-spacing:-.01em}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+  .card-head{display:flex;align-items:baseline;gap:10px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--line-soft)}
+  .card-head h2,.card-head h3{font-size:1em;font-weight:700;margin:0;letter-spacing:-.01em}
+  .card-head .tag{font-family:var(--mono);font-size:.68em;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+  /* 왼쪽에서 관찰, 오른쪽에 기록 */
+  .split{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media(max-width:900px){.split{grid-template-columns:1fr}}
+  .observe{min-width:0}
+  .record{min-width:0}
+  .colcap{
+    font-family:var(--mono);font-size:.68em;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 9px;
+  }
+
+  /* ── 체험대 ── */
+  .bench{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+  @media(max-width:820px){.bench{grid-template-columns:1fr}}
+  .bench a{
+    display:block;text-decoration:none;color:inherit;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;overflow:hidden;
+    transition:border-color .14s,transform .14s;
+  }
+  .bench a:hover{border-color:#9FB0C0;transform:translateY(-2px)}
+  .bench .thumb{height:190px;background:#F5F7F9;border-bottom:1px solid var(--line-soft);position:relative;overflow:hidden}
+  .bench .thumb canvas{display:block;width:100%;height:100%}
+  .bench .lab{padding:15px 17px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+  .bench .lab b{font-size:1.02em;letter-spacing:-.01em}
+  .bench .lab span{font-family:var(--mono);font-size:.7em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+  /* ── 아코디언 ── */
+  .step{border:1px solid var(--line);border-radius:10px;margin-bottom:12px;background:var(--panel);overflow:hidden}
+  .step.locked{background:#F4F6F8;border-style:dashed}
+  .step-head{
+    width:100%;display:flex;align-items:flex-start;gap:13px;padding:15px 18px;
+    background:none;border:0;text-align:left;cursor:pointer;border-radius:0;
+  }
+  .step-head:hover{background:#F5F7F9}
+  .step.locked .step-head{cursor:not-allowed}
+  .step-no{
+    font-family:var(--mono);font-size:.72em;font-weight:700;letter-spacing:.08em;
+    background:var(--ink);color:#fff;border-radius:5px;padding:4px 7px;flex:none;margin-top:2px;
+  }
+  .step.locked .step-no{background:#AEB8C2}
+  .step.done .step-no{background:var(--lock)}
+  .step-body-h{flex:1;min-width:0}
+  .step-title{font-weight:700;font-size:1em;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .step-title em{font-style:normal;font-family:var(--mono);font-size:.72em;color:var(--muted);letter-spacing:.06em}
+  .step-cond{
+    font-size:.85em;color:#3E6B58;background:#F1F8F4;border:1px solid #CBE5D8;
+    border-radius:6px;padding:6px 10px;margin-top:7px;line-height:1.5;
+  }
+  .step-cond b{font-family:var(--mono);font-size:.86em;letter-spacing:.08em;text-transform:uppercase;color:var(--lock);margin-right:6px}
+  .step.locked .step-cond{background:#EEF1F4;border-color:var(--line);color:var(--muted)}
+  .step.locked .step-cond b{color:var(--muted)}
+  .step-state{font-family:var(--mono);font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);flex:none;margin-top:5px}
+  .step.done .step-state{color:var(--lock)}
+  .step-body{display:none;padding:0 18px 20px;border-top:1px solid var(--line-soft)}
+  .step.open .step-body{display:block;padding-top:18px}
+
+  /* ── 입력 ── */
+  label.fld{display:block;margin-bottom:15px}
+  label.fld .lb{display:flex;justify-content:space-between;align-items:baseline;font-size:.88em;font-weight:600;margin-bottom:6px;gap:10px}
+  label.fld .lb i{font-style:normal;font-family:var(--mono);font-size:.82em;color:var(--muted);font-variant-numeric:tabular-nums}
+  label.fld .lb i.ok{color:var(--lock)}
+  textarea,input[type=text],select{
+    width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;
+    font-family:var(--sans);font-size:.92em;line-height:1.6;background:#FCFDFE;color:var(--ink);
+  }
+  textarea{min-height:82px;resize:vertical}
+  textarea:focus,input[type=text]:focus,select:focus{outline:2px solid var(--particle);outline-offset:-1px;border-color:transparent}
+  .hint{font-size:.8em;color:var(--muted);margin:5px 0 0;line-height:1.5}
+
+  ul.checks{list-style:none;margin:0;padding:0}
+  ul.checks li{margin-bottom:9px}
+  ul.checks label{display:flex;gap:10px;align-items:flex-start;font-size:.92em;line-height:1.55;cursor:pointer}
+  ul.checks input{accent-color:var(--lock);width:17px;height:17px;margin-top:2px;flex:none;cursor:pointer}
+
+  ul.plain{margin:0;padding-left:20px;line-height:1.72}
+  ul.plain li{margin-bottom:6px}
+  ul.plain li:last-child{margin-bottom:0}
+  ol.plain{margin:0;padding-left:22px;line-height:1.72}
+  ol.plain li{margin-bottom:6px}
+
+  .kv{font-family:var(--mono);font-size:.85em;color:var(--muted);margin:0 0 4px}
+  .kv b{color:var(--ink);font-weight:600}
+
+  /* ── 오류 기록 ── */
+  .errrow{border:1px solid var(--line);border-radius:8px;padding:13px 14px;margin-bottom:11px;background:#FCFDFE}
+  .errrow .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .errrow .top span{font-family:var(--mono);font-size:.72em;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+
+  /* ── 사다리 ── */
+  .ladder{display:grid;gap:11px}
+  .rung{display:grid;grid-template-columns:118px 1fr;gap:13px;align-items:start;border:1px solid var(--line);border-radius:8px;padding:13px 15px}
+  @media(max-width:620px){.rung{grid-template-columns:1fr}}
+  .rung .lv{font-family:var(--mono);font-size:.72em;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:var(--particle);padding-top:2px}
+  .rung .tx{font-size:.94em;line-height:1.6}
+
+  /* ── 코드/출력 ── */
+  pre.code{
+    background:#F5F7F9;border:1px solid var(--line);border-radius:8px;padding:16px 17px;
+    font-family:var(--mono);font-size:.8em;line-height:1.72;white-space:pre-wrap;
+    overflow-x:auto;margin:0;
+  }
+  .out{
+    background:#F5F7F9;border:1px solid var(--line);border-radius:8px;padding:16px 17px;
+    font-family:var(--mono);font-size:.8em;line-height:1.72;white-space:pre-wrap;margin:0;max-height:520px;overflow:auto;
+  }
+
+  /* ── 노트 박스 ── */
+  .note{background:#FDFBF4;border:1px solid #E8DFC4;border-radius:9px;padding:15px 18px;margin-bottom:16px}
+  .note h4{font-size:.88em;margin:0 0 8px;color:#4A4232;letter-spacing:.01em}
+  .note ul{margin:0;padding-left:19px;font-size:.88em;color:#4A4232;line-height:1.72}
+  .note li{margin-bottom:5px}
+  .note li:last-child{margin-bottom:0}
+  .note p{margin:0;font-size:.88em;color:#4A4232;line-height:1.7}
+
+  .green{background:#F1F8F4;border:1px solid #CBE5D8;border-radius:9px;padding:15px 18px;margin-bottom:16px}
+  .green h4{font-size:.88em;margin:0 0 8px;color:#2E5B48}
+  .green ul{margin:0;padding-left:19px;font-size:.88em;color:#3E6B58;line-height:1.72}
+  .green li{margin-bottom:5px}
+  .green p{margin:0;font-size:.88em;color:#3E6B58;line-height:1.7}
+
+  .red{background:#FDF3F1;border:1px solid #EFCFC8;border-radius:9px;padding:15px 18px;margin-bottom:16px}
+  .red h4{font-size:.88em;margin:0 0 8px;color:#8A4034}
+  .red ol,.red ul{margin:0;padding-left:20px;font-size:.88em;color:#8A4034;line-height:1.72}
+  .red li{margin-bottom:5px}
+
+  /* ── 프레임 ── */
+  .frame{border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+  .frame iframe{display:block;width:100%;height:78vh;min-height:560px;border:0;background:#E9ECEF}
+  .frame .fbar{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:8px 12px;border-bottom:1px solid var(--line-soft);background:#F5F7F9;
+    font-family:var(--mono);font-size:.72em;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  }
+
+  /* ── 5요소 ── */
+  .five{display:grid;gap:12px}
+  .fiveitem{border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .fiveitem .fh{display:flex;gap:11px;align-items:baseline;padding:12px 15px;background:#F5F7F9;border-bottom:1px solid var(--line-soft)}
+  .fiveitem .fh b{font-size:.97em}
+  .fiveitem .fh span{font-size:.86em;color:var(--muted)}
+  .fiveitem .fb{padding:12px 15px}
+  .fiveitem .fb div{font-size:.9em;line-height:1.62;margin-bottom:5px}
+  .fiveitem .fb div:last-child{margin-bottom:0}
+  .fiveitem .fb em{font-style:normal;font-family:var(--mono);font-size:.82em;color:var(--particle);margin-right:8px;letter-spacing:.04em}
+
+  /* ── 루브릭 ── */
+  .rub{border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-bottom:16px}
+  .rub-row{display:grid;grid-template-columns:170px 1fr;border-bottom:1px solid var(--line-soft)}
+  .rub-row:last-child{border-bottom:0}
+  @media(max-width:640px){.rub-row{grid-template-columns:1fr}}
+  .rub-c{padding:11px 14px;font-size:.88em;font-weight:600;background:#F5F7F9;line-height:1.45}
+  .rub-l{padding:11px 14px;font-size:.86em;color:var(--muted);line-height:1.6}
+  .rub-l b{color:var(--ink);font-family:var(--mono);font-size:.85em;margin-right:5px}
+
+  /* ── 계기 숫자 (투사 모드에서 2배) ── */
+  .metric{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:calc(1.55em * var(--gauge-scale));letter-spacing:-.02em}
+  body.project{--gauge-scale:2}
+
+  .prog{display:flex;gap:5px;flex-wrap:wrap;margin:0 0 22px}
+  .prog i{
+    font-style:normal;font-family:var(--mono);font-size:.7em;letter-spacing:.08em;
+    border:1px solid var(--line);border-radius:5px;padding:4px 8px;color:var(--muted);background:var(--panel);
+  }
+  .prog i.done{background:#F1F8F4;border-color:#CBE5D8;color:var(--lock)}
+  .prog i.now{background:var(--ink);border-color:var(--ink);color:#fff}
+
+  .rowbtns{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}
+  .divider{height:1px;background:var(--line-soft);margin:22px 0}
+
+  .toast{
+    position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);
+    background:var(--ink);color:#fff;padding:10px 18px;border-radius:7px;font-size:.87em;
+    opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60;max-width:82vw;text-align:center;
+  }
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<div class="teacher-flag">강사 모드 — 전체 잠금이 해제되어 있습니다. 개인 기기에서는 잠금이 그대로입니다</div>
+
+<header class="topbar">
+  <div class="topbar-in">
+    <div class="brand">화학 바이브코딩 실습장<small>Chemistry · Vibe Coding</small></div>
+    <nav class="pages" id="nav"></nav>
+    <div class="acts">
+      <button class="ghost" id="btnSave">진행 저장</button>
+      <button class="ghost" id="btnLoad">이어서 하기</button>
+      <input type="file" id="fileIn" accept="application/json,.json" hidden>
+      <button class="lockbtn" id="btnTeacher" title="강사 모드" aria-label="강사 모드">🔒</button>
+    </div>
+  </div>
+  <div class="tpanel" id="tpanel">
+    <div class="row">
+      <input type="password" id="tcode" placeholder="강사 코드" autocomplete="off">
+      <button class="solid tiny" id="tgo">확인</button>
+      <button class="tiny" id="tproj">투사 모드 켜기</button>
+      <button class="tiny" id="toff">강사 모드 끄기</button>
+    </div>
+    <small>전체 잠금 해제는 강사가 진도를 끌 때만 쓰세요. 잠금 자체가 오늘 배울 프레임의 시연물입니다.<br>투사 모드는 본문 글자를 1.35배, 계기판 수치를 2배로 키웁니다.</small>
+  </div>
+  <div class="savenudge" id="nudge">
+    <b>저장하셨나요?</b>
+    <span>이 사이트는 브라우저에 아무것도 저장하지 않습니다. 창을 닫으면 입력이 사라집니다.</span>
+    <button class="tiny solid" id="nudgeSave">지금 저장</button>
+    <button class="tiny ghost" id="nudgeNo">나중에</button>
+  </div>
+</header>
+
+<div class="wrap" id="wrap"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════
+   콘텐츠 원본 — 화학 내용과 완료조건은 명세 그대로다. 수치를 바꾸지 말 것.
+   ══════════════════════════════════════════════════════════════ */
+"use strict";
+
+const FRAME = {
+  intro:'아이에게 "설거지 좀 깨끗이 해라"라고 하면 실패한다.\n깨끗함의 기준이 서로 다르기 때문이다.\nAI에게 시킬 때도, 학생에게 과제를 낼 때도 같은 이유로 실패한다.',
+  items:[
+    {n:'①', name:'목표', sub:'무엇이 "깨끗함"인가', rows:[
+      ['설거지','기름기가 손끝에 걸리지 않을 것'],
+      ['프롬프트','무엇을 만드는 물건인지 한 문장으로'],
+      ['수업','성취기준을 학생이 하는 행동으로 번역한 진술']]},
+    {n:'②', name:'완료조건', sub:'끝났다고 말할 수 있는 상태, 시작 전에 준다', rows:[
+      ['설거지','헹군 물이 맑고 컵 안쪽에 물자국이 없을 것'],
+      ['프롬프트','슬라이더 3개가 돌고, 속력이 √T에 비례하고, PV/nT가 일정할 것'],
+      ['수업','루브릭을 과제 시작 전에 공개하고 예시 답안까지 보여줄 것']]},
+    {n:'③', name:'검증', sub:'스스로 확인하는 방법과 도구', rows:[
+      ['설거지','불빛에 비춰 보고 손끝으로 훑어 본다'],
+      ['프롬프트','온도를 4배 올려 속력이 2배가 되는지 직접 확인한다'],
+      ['수업','자기점검 체크리스트를 주고 제출 전에 통과하게 한다']]},
+    {n:'④', name:'재시도·정지', sub:'안 됐을 때 무엇을 할지 미리 정한다', rows:[
+      ['설거지','물자국이 남으면 다시 헹구고, 세 번째도 안 되면 부른다'],
+      ['프롬프트','어긋난 항목만 지목해 고치고, 3회를 넘기면 처음부터 다시 쓴다'],
+      ['수업','재제출 허용 범위와 횟수를 사전에 명시하고 그 안에서만 받는다']]},
+    {n:'⑤', name:'기본기·도구', sub:'그걸 하려면 알아야 하는 것', rows:[
+      ['설거지','수세미 종류, 기름기를 먼저 닦는 순서, 물 온도'],
+      ['프롬프트','어떤 패턴인지, 어떤 물리량이 보장돼야 하는지, 무엇을 단순화했는지'],
+      ['수업','스캐폴딩과 예시를 어디까지 주고 언제 걷어낼지']]}
+  ],
+  stress:'②를 먼저 준다는 것이 전부다. 나머지 넷은 ②에서 파생된다.'
+};
+
+const RUBRIC3 = [
+  {c:'관계 진술', hi:'두 변인의 관계를 방향과 함께 정확히 진술', mid:'방향은 맞으나 변인이 모호', lo:'변화만 언급'},
+  {c:'증거 사용', hi:'기록한 수치를 두 개 이상 인용', mid:'수치를 하나만 인용', lo:'수치 없이 서술만'},
+  {c:'입자·모형 수준 설명', hi:'거시 변화를 미시 모형으로 나누어 설명', mid:'모형을 언급하나 구분이 없음', lo:'모형 언급 없음'}
+];
+
+const SETS = [
+{
+  no:1, title:'기체 분자 운동', pattern:'입자 애니메이션',
+  hook:'보이지 않는 충돌이 압력이 된다',
+  sim:'sims/gas.html', simName:'기체분자운동_시뮬레이션.html', ready:true,
+  why:'압력은 실험실에서 눈금으로만 보인다. 그 눈금이 어디서 오는지는 안 보인다. 입자 하나하나가 벽을 때리는 것이 압력이라는 연결은 그림으로는 안 되고 움직여야만 된다.',
+  varsControl:'온도, 부피, 입자 수',
+  varsObserve:'압력, 평균 제곱근 속력, 벽면 충돌 횟수, PV/nT',
+  conditions:[
+    '속력은 T가 아니라 <b>√T에 비례</b>한다',
+    '초기 속력은 맥스웰–볼츠만 분포에서 표본추출한다',
+    '압력은 충돌 횟수가 아니라 <b>운동량 전달량을 누적</b>해 계산한다',
+    '부피는 입자 중심이 도달 가능한 유효 넓이로 계산한다 (반지름 보정)',
+    '세 조건을 어떻게 바꿔도 PV/nT가 3% 안에서 일정하다'
+  ],
+  verify:[
+    '온도를 100 K에서 400 K로 — 속력이 정확히 2배가 되는가',
+    '부피를 절반으로 — 압력이 2배가 되는가',
+    '입자를 3배로 — 압력이 3배가 되는가',
+    '세 번 모두에서 PV/nT 칸이 1.00 근처를 유지하는가'
+  ],
+  errors:[
+    '속력을 T에 비례시킨다. 온도 4배에 속력도 4배가 되어 버린다',
+    '압력을 충돌 횟수만으로 센다. 온도 효과가 절반만 반영된다',
+    '모든 입자에 같은 속력을 준다. 볼츠만 분포로 넘어갈 발판이 사라진다',
+    '벽 충돌에서 위치를 되돌리지 않아 입자가 벽에 붙고 압력이 폭주한다',
+    '부피를 상자 전체 넓이로 잡는다. 좁은 부피에서 보일 법칙이 6% 어긋난다'
+  ],
+  simplify:[
+    '2차원이라 실제 3차원 기체와 계수가 다르다',
+    '입자끼리 충돌하지 않는다. 이상기체 가정이고 그래서 확산은 못 본다',
+    '피스톤을 눌러도 온도가 오르지 않는다. 실제 단열 압축은 기체를 데운다',
+    '입자 크기가 과장되어 있다. 실제 분자 사이 빈 공간은 훨씬 넓다'
+  ],
+  ladder:[
+    ['바로 가능','확산과 그레이엄 법칙 — 분자량이 다른 두 기체를 양쪽에서 풀어놓기'],
+    ['한 걸음 더','방사성 붕괴 반감기 — 입자가 색을 바꾸며 사라지고 그래프가 동시에 그려지기'],
+    ['수업 한 차시','한계 반응물 — 반응물 개수를 직접 조절해 남는 입자와 생성물을 세게 하기']
+  ],
+  prompt:`【목표】
+고등학생이 기체의 압력이 어디서 오는지 입자 수준에서 이해하도록,
+단일 HTML 파일로 된 기체 분자 운동 시뮬레이션을 만들어 주세요.
+
+【완료조건】 아래를 모두 만족해야 완성입니다
+1. 온도, 부피, 입자 수를 슬라이더로 조절할 수 있다
+2. 입자 속력은 온도가 아니라 온도의 제곱근에 비례한다
+3. 초기 속력은 맥스웰-볼츠만 분포에서 표본추출한다
+4. 압력은 충돌 횟수가 아니라 운동량 전달량을 누적해 계산한다
+5. 부피는 입자 중심이 도달 가능한 유효 넓이로 계산한다
+6. 압력, 평균 제곱근 속력, 벽면 충돌 횟수, PV/nT를 실시간 표시한다
+7. 어떤 조건에서도 PV/nT가 3% 안에서 일정하다
+
+【검증】 만든 뒤 아래를 직접 확인하고 결과를 알려 주세요
+- 온도를 100K에서 400K로 올렸을 때 속력이 정확히 2배가 되는가
+- 부피를 절반으로 줄였을 때 압력이 2배가 되는가
+- 입자를 3배로 늘렸을 때 압력이 3배가 되는가
+- 위 세 경우 모두에서 PV/nT가 일정하게 유지되는가
+
+【재시도】
+검증에서 어긋난 항목이 있으면 그 항목만 지목해 고치고 다시 검증하세요.
+세 번을 넘기면 접근을 바꿔 처음부터 다시 작성하세요.
+
+【기본기】
+- 2차원으로 만들되 3차원이 아니라는 점을 화면에 명시하세요
+- 입자끼리의 충돌은 구현하지 마세요 (이상기체 가정)
+- 단순화한 가정을 목록으로 화면 하단에 적어 주세요
+- 외부 라이브러리 없이 canvas만 쓰고, 한 파일로 완성하세요`
+},
+{
+  no:2, title:'산-염기 적정', pattern:'실시간 그래프',
+  hook:'한 시간에 곡선 하나밖에 못 얻던 것을, 스무 개 겹쳐 본다',
+  sim:'sims/titration.html', simName:'적정곡선_시뮬레이션.html', ready:true,
+  why:'실제 적정은 한 조가 한 시간에 곡선 하나를 얻는다. 강산과 약산의 곡선 모양이 왜 다른지는 곡선 여러 개를 겹쳐 봐야 보이는데, 실험실에서는 불가능하다.',
+  varsControl:'산의 종류(강산/약산과 Ka), 염기의 종류, 초기 농도, 초기 부피, 적정액 농도',
+  varsObserve:'pH 곡선, 당량점 위치, 완충 구간, 지시약 색 변화',
+  conditions:[
+    '당량점 pH는 <b>강산-강염기일 때만 7</b>이다',
+    '약산-강염기의 당량점은 pH &gt; 7, 약염기-강산의 당량점은 pH &lt; 7이다',
+    '약산 적정에는 완충 구간이 나타나고, 반당량점에서 <b>pH = pKa</b>이다',
+    '적정액이 들어갈수록 총 부피가 늘어나는 <b>희석 효과가 반영</b>된다',
+    '지시약은 변색 범위가 pH 급변 구간 안에 들어올 때만 쓸 수 있다'
+  ],
+  verify:[
+    '0.1 M 강산을 0.1 M 강염기로 적정 — 당량점이 정확히 pH 7인가',
+    '아세트산(Ka = 1.8×10⁻⁵)을 강염기로 적정 — 반당량점 pH가 4.74 근처인가',
+    '같은 아세트산의 당량점 — pH가 8~9 사이에 오는가',
+    '메틸오렌지(3.1~4.4)를 약산 적정에 골랐을 때 — 쓸 수 없다고 경고하는가'
+  ],
+  errors:[
+    '모든 조합에 강산-강염기 공식을 쓴다. 완충 구간이 통째로 사라진다',
+    '당량점 pH를 무조건 7로 찍는다. 가수분해를 계산하지 않는다',
+    '반당량점에서 pH가 pKa와 맞지 않는다. 헨더슨–하셀바흐를 안 쓴 것이다',
+    '적정액 부피가 늘어도 희석을 반영하지 않는다. 곡선이 부자연스럽게 가파르다',
+    '지시약을 장식으로만 쓴다. 어느 것을 골라도 색이 당량점에서 변하게 만든다'
+  ],
+  simplify:[
+    '활동도 대신 농도를 쓴다. 진한 용액에서는 어긋난다',
+    '온도는 25 ℃ 고정이고 Kw는 1.0×10⁻¹⁴로 둔다',
+    '이산화탄소 용해로 인한 오차는 무시한다'
+  ],
+  ladder:[
+    ['바로 가능','지시약 고르기 훈련 — 곡선 위에 변색 범위를 띠로 겹쳐 보여주기'],
+    ['한 걸음 더','미지 농도 구하기 — 곡선만 주고 당량점을 읽어 농도를 역산하는 평가 문항'],
+    ['수업 한 차시','이양성자산 적정 — 인산의 두 단계 당량점과 완충 구간 두 개를 비교하기']
+  ],
+  prompt:`【목표】
+고등학생이 강산과 약산의 적정 곡선이 왜 다른 모양인지 이해하도록,
+단일 HTML 파일로 된 산-염기 적정 시뮬레이션을 만들어 주세요.
+
+【완료조건】 아래를 모두 만족해야 완성입니다
+1. 산의 종류(강산/약산과 Ka), 염기의 종류, 초기 농도, 초기 부피, 적정액 농도를 조절할 수 있다
+2. 당량점 pH는 강산-강염기일 때만 7이다
+3. 약산-강염기의 당량점은 pH > 7, 약염기-강산의 당량점은 pH < 7이다
+4. 약산 적정에는 완충 구간이 나타나고, 반당량점에서 pH = pKa이다
+5. 적정액이 들어갈수록 총 부피가 늘어나는 희석 효과가 반영된다
+6. 지시약은 변색 범위가 pH 급변 구간 안에 들어올 때만 쓸 수 있다
+7. pH 곡선, 당량점 위치, 완충 구간, 지시약 색 변화를 실시간 표시한다
+
+【검증】 만든 뒤 아래를 직접 확인하고 결과를 알려 주세요
+- 0.1 M 강산을 0.1 M 강염기로 적정했을 때 당량점이 정확히 pH 7인가
+- 아세트산(Ka = 1.8×10⁻⁵)을 강염기로 적정했을 때 반당량점 pH가 4.74 근처인가
+- 같은 아세트산의 당량점 pH가 8~9 사이에 오는가
+- 메틸오렌지(3.1~4.4)를 약산 적정에 골랐을 때 쓸 수 없다고 경고하는가
+
+【재시도】
+검증에서 어긋난 항목이 있으면 그 항목만 지목해 고치고 다시 검증하세요.
+세 번을 넘기면 접근을 바꿔 처음부터 다시 작성하세요.
+
+【기본기】
+- 활동도 대신 농도를 쓰되, 진한 용액에서는 어긋난다는 점을 화면에 명시하세요
+- 온도는 25 ℃ 고정이고 Kw는 1.0×10⁻¹⁴로 두세요
+- 이산화탄소 용해로 인한 오차는 무시하세요
+- 단순화한 가정을 목록으로 화면 하단에 적어 주세요
+- 외부 라이브러리 없이 canvas만 쓰고, 한 파일로 완성하세요`
+},
+{
+  no:3, title:'르샤틀리에 평형', pattern:'계산 + 시각 신호',
+  hook:'정지해 보이는 것이 사실은 양방향으로 계속 달리고 있다',
+  sim:'sims/equilibrium.html', simName:'평형이동_시뮬레이션.html', ready:true,
+  why:'동적 평형은 겉보기에 아무 일도 안 일어난다. "정반응과 역반응 속도가 같다"는 문장을 학생이 "반응이 멈췄다"로 읽는 이유가 여기 있다. 변화를 준 뒤 새 평형에 도달하는 <b>과정</b>을 보여줘야 이 오개념이 깨진다.',
+  varsControl:'반응물·생성물 농도, 온도, 부피(압력), 촉매 유무, 불활성 기체 추가',
+  varsObserve:'용기 색, 농도 막대, 반응 지수 Q와 평형 상수 K, 새 평형 도달 시간',
+  conditions:[
+    '촉매는 K를 바꾸지 않는다. <b>도달 시간만 단축</b>한다',
+    '기체 몰수 차이가 0인 반응(H₂ + I₂ ⇌ 2HI)은 <b>압력 변화에 평형이 이동하지 않는다</b>',
+    '<b>온도만이 K를 바꾼다.</b> 발열 반응은 온도를 올리면 K가 작아져 역방향으로 간다',
+    '이동 방향은 Q와 K의 비교로 결정한다 (Q &lt; K이면 정방향)',
+    '일정 부피에 불활성 기체를 넣어도 평형은 이동하지 않는다',
+    '변화를 준 뒤 새 평형까지 <b>시간이 걸린다.</b> 즉시 점프하지 않는다'
+  ],
+  verify:[
+    '촉매를 넣었다 뺐다 — K 값 표시가 변하지 않는가',
+    'H₂ + I₂ ⇌ 2HI에서 부피를 절반으로 — 평형이 그대로인가',
+    'N₂O₄ ⇌ 2NO₂ (흡열)에서 온도를 올림 — 갈색이 진해지는가',
+    '일정 부피에 아르곤 추가 — 아무 일도 안 일어나는가',
+    '농도를 급히 바꿈 — 막대가 순간이동하지 않고 곡선을 그리며 이동하는가'
+  ],
+  errors:[
+    '촉매가 평형을 이동시키거나 K를 바꾸게 만든다. 가장 흔한 오류',
+    '기체 몰수가 같은 반응에서도 압력 변화로 평형을 옮긴다',
+    '발열과 흡열의 온도 방향을 반대로 구현한다',
+    '변화를 주는 즉시 새 평형으로 점프한다. 동적 평형의 핵심이 사라진다',
+    '고체나 순수 액체를 평형 상수 식에 포함시킨다',
+    '일정 부피에 불활성 기체를 넣으면 평형이 이동한다고 표시한다'
+  ],
+  simplify:[
+    '이상 기체로 가정하고 활동도를 쓰지 않는다',
+    '반응 속도 상수를 임의 값으로 두어 도달 시간이 실제와 다르다',
+    '부반응이 없는 단일 평형만 다룬다'
+  ],
+  ladder:[
+    ['바로 가능','색으로 보는 평형 — 크로뮴산과 중크로뮴산의 노랑·주황 전환'],
+    ['한 걸음 더','공통 이온 효과 — 같은 이온을 넣었을 때 용해도가 줄어드는 것'],
+    ['수업 한 차시','하버-보슈 최적화 — 수율과 속도가 상충하는 조건을 학생이 직접 탐색하기']
+  ],
+  prompt:`【목표】
+고등학생이 동적 평형이 멈춘 것이 아니라는 것과 르샤틀리에 원리를 이해하도록,
+단일 HTML 파일로 된 화학 평형 시뮬레이션을 만들어 주세요.
+
+【완료조건】 아래를 모두 만족해야 완성입니다
+1. 반응물·생성물 농도, 온도, 부피(압력), 촉매 유무, 불활성 기체 추가를 조절할 수 있다
+2. 촉매는 K를 바꾸지 않는다. 도달 시간만 단축한다
+3. 기체 몰수 차이가 0인 반응(H₂ + I₂ ⇌ 2HI)은 압력 변화에 평형이 이동하지 않는다
+4. 온도만이 K를 바꾼다. 발열 반응은 온도를 올리면 K가 작아져 역방향으로 간다
+5. 이동 방향은 Q와 K의 비교로 결정한다 (Q < K이면 정방향)
+6. 일정 부피에 불활성 기체를 넣어도 평형은 이동하지 않는다
+7. 변화를 준 뒤 새 평형까지 시간이 걸린다. 즉시 점프하지 않는다
+8. 용기 색, 농도 막대, Q와 K, 새 평형 도달 시간을 실시간 표시한다
+
+【검증】 만든 뒤 아래를 직접 확인하고 결과를 알려 주세요
+- 촉매를 넣었다 뺐다 했을 때 K 값 표시가 변하지 않는가
+- H₂ + I₂ ⇌ 2HI에서 부피를 절반으로 했을 때 평형이 그대로인가
+- N₂O₄ ⇌ 2NO₂ (흡열)에서 온도를 올렸을 때 갈색이 진해지는가
+- 일정 부피에 아르곤을 추가했을 때 아무 일도 안 일어나는가
+- 농도를 급히 바꿨을 때 막대가 순간이동하지 않고 곡선을 그리며 이동하는가
+
+【재시도】
+검증에서 어긋난 항목이 있으면 그 항목만 지목해 고치고 다시 검증하세요.
+세 번을 넘기면 접근을 바꿔 처음부터 다시 작성하세요.
+
+【기본기】
+- 촉매는 정반응과 역반응의 속도 상수에 같은 배수를 곱해 K가 수학적으로 변할 수 없게 하세요
+- 고체와 순수 액체는 Q와 K의 식에서 제외하세요
+- 이상 기체로 가정하고 활동도는 쓰지 마세요
+- 반응 속도 상수는 임의 값이라 도달 시간이 실제와 다르다는 점을 화면에 명시하세요
+- 단순화한 가정을 목록으로 화면 하단에 적어 주세요
+- 외부 라이브러리 없이 canvas만 쓰고, 한 파일로 완성하세요`
+},
+{
+  no:4, title:'VSEPR 분자 구조', pattern:'3차원 회전 (도전 과제)',
+  hook:'종이 위에서는 평면이지만, 돌려 보면 이야기가 달라진다',
+  sim:'sims/vsepr.html', simName:'VSEPR_분자구조_시뮬레이션.html', ready:true,
+  why:'분자 구조는 3차원인데 교과서와 칠판은 2차원이다. 암모니아를 평면으로 그려 놓고 삼각뿔이라고 말하는 순간, 학생 머릿속에서 고립전자쌍이 사라진다.',
+  varsControl:'중심 원자, 결합 원자 수, 고립전자쌍 수, 회전 각도',
+  varsObserve:'입체 구조, 결합각, 전자쌍 배열과 분자 구조의 차이, 분자 전체의 극성',
+  conditions:[
+    '결합각이 실제 값과 맞다 — CH₄ 109.5°, NH₃ 107°, H₂O 104.5°, BF₃ 120°, CO₂ 180°',
+    '<b>고립전자쌍의 반발이 결합쌍보다 커서</b> 결합각을 좁힌다는 것이 수치로 드러난다',
+    '<b>전자쌍 배열과 분자 구조를 구분</b>해 둘 다 표시한다 (NH₃는 사면체 배열, 삼각뿔 구조)',
+    '극성은 전기음성도 차가 아니라 <b>결합 쌍극자의 벡터합</b>으로 판정한다',
+    '이중결합과 삼중결합은 전자쌍 여러 개가 아니라 <b>하나의 영역</b>으로 센다'
+  ],
+  verify:[
+    '물 분자의 결합각을 확인 — 109.5°가 아니라 104.5°로 나오는가',
+    '암모니아를 회전 — 고립전자쌍이 어디 있는지 보이는가',
+    'CO₂의 극성 판정 — 결합은 극성인데 분자는 무극성이라고 나오는가',
+    'CCl₄의 극성 판정 — 무극성으로 나오는가'
+  ],
+  errors:[
+    '고립전자쌍을 무시하고 이상적 각만 쓴다. 물이 109.5°로 나온다',
+    '전자쌍 배열과 분자 구조를 혼동한다. 암모니아를 사면체라고 부른다',
+    '극성을 전기음성도 차만으로 판정한다. CO₂를 극성 분자라고 한다',
+    '이중결합을 전자쌍 두 개로 세어 구조를 틀리게 만든다',
+    '회전 중에 원자 간 거리가 미묘하게 변한다. 구조가 유지되지 않는다'
+  ],
+  simplify:[
+    'VSEPR은 근사 모형이다. 실제 결합각은 실험값과 조금씩 다르다',
+    '오비탈 혼성은 다루지 않는다',
+    '5개 이상 결합의 확장 팔전자계는 범위 밖으로 둔다'
+  ],
+  ladder:[
+    ['바로 가능','극성 판정 퀴즈 — 분자를 주고 벡터합을 예측하게 하기'],
+    ['한 걸음 더','분자간 힘 연결 — 구조와 극성에서 끓는점 순서를 예측하기'],
+    ['수업 한 차시','이성질체 비교 — 시스·트랜스를 돌려 보며 성질 차이 설명하기']
+  ],
+  prompt:`【목표】
+고등학생이 분자가 3차원이라는 것과 고립전자쌍이 구조를 바꾼다는 것을 이해하도록,
+단일 HTML 파일로 된 VSEPR 분자 구조 시뮬레이션을 만들어 주세요.
+
+【완료조건】 아래를 모두 만족해야 완성입니다
+1. 중심 원자, 결합 원자 수, 고립전자쌍 수, 회전 각도를 조절할 수 있다
+2. 결합각이 실제 값과 맞다 — CH₄ 109.5°, NH₃ 107°, H₂O 104.5°, BF₃ 120°, CO₂ 180°
+3. 고립전자쌍의 반발이 결합쌍보다 커서 결합각을 좁힌다는 것이 수치로 드러난다
+4. 전자쌍 배열과 분자 구조를 구분해 둘 다 표시한다 (NH₃는 사면체 배열, 삼각뿔 구조)
+5. 극성은 전기음성도 차가 아니라 결합 쌍극자의 벡터합으로 판정한다
+6. 이중결합과 삼중결합은 전자쌍 여러 개가 아니라 하나의 영역으로 센다
+7. 입체 구조, 결합각, 전자쌍 배열과 분자 구조의 차이, 분자 전체의 극성을 실시간 표시한다
+
+【검증】 만든 뒤 아래를 직접 확인하고 결과를 알려 주세요
+- 물 분자의 결합각이 109.5°가 아니라 104.5°로 나오는가
+- 암모니아를 회전했을 때 고립전자쌍이 어디 있는지 보이는가
+- CO₂의 극성 판정에서 결합은 극성인데 분자는 무극성이라고 나오는가
+- CCl₄의 극성 판정에서 무극성으로 나오는가
+
+【재시도】
+검증에서 어긋난 항목이 있으면 그 항목만 지목해 고치고 다시 검증하세요.
+세 번을 넘기면 접근을 바꿔 처음부터 다시 작성하세요.
+
+【기본기】
+- 결합각은 이상값을 적어 두지 말고 3차원 좌표에서 내적으로 실측해 표시하세요
+- 회전은 직교 회전행렬로 구현해 원자 간 거리가 변할 수 없게 만드세요
+- VSEPR이 근사 모형이라는 점과 오비탈 혼성을 다루지 않는다는 점을 화면에 명시하세요
+- 5개 이상 결합의 확장 팔전자계는 범위 밖으로 두세요
+- 단순화한 가정을 목록으로 화면 하단에 적어 주세요
+- 외부 라이브러리 없이 canvas만 쓰고, 한 파일로 완성하세요`
+}
+];
+
+const STEPS = [
+  {no:'S1', name:'본다',    job:'완성본을 학생 입장에서 만진다. 설명 없음',
+   cond:'관찰 메모 20자 이상 + "학생이 가장 먼저 물을 질문" 10자 이상'},
+  {no:'S2', name:'뜯어본다', job:'어떤 패턴이고 무엇이 화학적으로 보장돼야 하는지',
+   cond:'완료조건 체크박스 전 항목 확인'},
+  {no:'S3', name:'시킨다',  job:'5요소로 쓴 프롬프트 전문을 받아 직접 생성한다',
+   cond:'사용한 AI 도구 선택 + 생성 결과 소감 20자 이상'},
+  {no:'S4', name:'검증한다', job:'자기 결과물의 오류를 완료조건에 대조해 찾는다',
+   cond:'발견한 오류 2건 이상 기록 (각 건마다 "어긋난 완료조건" 지정 필수)'},
+  {no:'S5', name:'바꾼다',  job:'변형 사다리를 보고 자기 진도표에 꽂을 자리를 정한다',
+   cond:'진도표 위치 입력 + 변형 계획 20자 이상'}
+];
+
+const TOOLS = ['Claude','Gemini','ChatGPT','Claude Code','기타'];
+const TEACHER_CODE = 'dish5';
+</script>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ═══════════ 상태 ═══════════
+   브라우저 저장소를 쓰지 않는다. 모든 입력은 이 객체에만 있고,
+   남기려면 JSON 파일로 내려받아야 한다.                                */
+function blankSet(s){
+  return {
+    s1:{memo:'', question:''},
+    s2:{checks:s.conditions.map(()=>false)},
+    s3:{tool:'', impression:''},
+    s4:{errors:[{text:'',cond:''},{text:'',cond:''}]},
+    s5:{place:'', plan:''}
+  };
+}
+const state={
+  version:1,
+  sets:{}, 
+  bench:{standard:'', goal:'', done:'', verify:'', retry:'', basics:'', setNo:1},
+  ui:{page:'p0', open:{}}
+};
+SETS.forEach(s=>{ state.sets[s.no]=blankSet(s); state.ui.open[s.no]=1; });
+
+const teacher={unlocked:false, project:false};
+
+/* ═══════════ 잠금 판정 ═══════════ */
+const len=s=>String(s||'').trim().length;
+function stepDone(no, i){
+  const d=state.sets[no], s=SETS.find(x=>x.no===no);
+  if(i===1) return len(d.s1.memo)>=20 && len(d.s1.question)>=10;
+  if(i===2) return d.s2.checks.length===s.conditions.length && d.s2.checks.every(Boolean);
+  if(i===3) return !!d.s3.tool && len(d.s3.impression)>=20;
+  if(i===4) return d.s4.errors.filter(e=>len(e.text)>0 && !!e.cond).length>=2;
+  if(i===5) return len(d.s5.place)>0 && len(d.s5.plan)>=20;
+  return false;
+}
+function stepOpenable(no, i){
+  if(teacher.unlocked) return true;
+  for(let k=1;k<i;k++) if(!stepDone(no,k)) return false;
+  return true;
+}
+function setDone(no){ return stepDone(no,5); }
+function whyLocked(no,i){
+  for(let k=1;k<i;k++) if(!stepDone(no,k)) return STEPS[k-1].no+' 단계의 완료조건을 아직 채우지 못했습니다';
+  return '';
+}
+
+/* ═══════════ 공통 조각 ═══════════ */
+function fiveFrameHtml(){
+  return '<div class="five">'+FRAME.items.map(it=>
+    '<div class="fiveitem"><div class="fh"><b>'+it.n+' '+it.name+'</b><span>'+esc(it.sub)+'</span></div>'
+    +'<div class="fb">'+it.rows.map(r=>'<div><em>'+r[0]+'</em>'+esc(r[1])+'</div>').join('')+'</div></div>'
+  ).join('')+'</div>';
+}
+function condListHtml(s){
+  return '<ul class="plain">'+s.conditions.map(c=>'<li>'+c+'</li>').join('')+'</ul>';
+}
+function counterCls(cur,need){ return cur>=need?'ok':''; }
+
+/* ═══════════ 페이지 0 · 체험대 ═══════════ */
+function pageBench(){
+  return '<section class="page" id="p0">'
+   +'<p class="eyebrow">체험대</p>'
+   +'<h1>먼저 만져 보세요</h1>'
+   +'<p class="lede">네 개를 학생이 되어 직접 움직여 보고 오세요. 이야기는 그 다음입니다.</p>'
+   +'<div class="bench">'
+   + SETS.map(s=>
+     '<a href="'+s.sim+'" target="_blank" rel="noopener">'
+     +'<div class="thumb"><canvas class="thumbcv" data-k="'+s.no+'" width="640" height="380"></canvas></div>'
+     +'<div class="lab"><b>'+esc(s.title)+'</b><span>'+esc(s.pattern)+'</span></div></a>').join('')
+   +'</div></section>';
+}
+
+/* 썸네일 — 설명 대신 움직임만 둔다 */
+function startThumbs(){
+  document.querySelectorAll('.thumbcv').forEach(cv=>{
+    const k=+cv.dataset.k, c=cv.getContext('2d'), W=640, H=380;
+    if(cv.dataset.live) return; cv.dataset.live='1';
+    const ps=[]; for(let i=0;i<26;i++) ps.push({x:Math.random()*W,y:Math.random()*H,vx:(Math.random()-.5)*150,vy:(Math.random()-.5)*150});
+    let t=0, last=performance.now();
+    (function tick(now){
+      if(!document.body.contains(cv)) return;
+      const dt=Math.min((now-last)/1000,.05); last=now; t+=dt;
+      c.clearRect(0,0,W,H); c.fillStyle='#F5F7F9'; c.fillRect(0,0,W,H);
+      if(k===1){
+        for(const p of ps){
+          p.x+=p.vx*dt; p.y+=p.vy*dt;
+          if(p.x<14||p.x>W-14){p.vx*=-1;p.x=Math.max(14,Math.min(W-14,p.x));}
+          if(p.y<14||p.y>H-14){p.vy*=-1;p.y=Math.max(14,Math.min(H-14,p.y));}
+          c.beginPath(); c.arc(p.x,p.y,9,0,6.2832); c.fillStyle='#1F5FA8'; c.fill();
+        }
+      } else if(k===2){
+        c.strokeStyle='#D2D8DF'; c.lineWidth=2;
+        c.beginPath(); c.moveTo(60,H-46); c.lineTo(W-40,H-46); c.moveTo(60,30); c.lineTo(60,H-46); c.stroke();
+        const shift=Math.sin(t*.7)*46;
+        c.strokeStyle='#1F5FA8'; c.lineWidth=5; c.beginPath();
+        for(let i=0;i<=120;i++){
+          const x=60+i/120*(W-110), u=(i/120-.5)*11 - shift*.045;
+          const y=H-46-(1/(1+Math.exp(-u))*.82+.09)*(H-92);
+          i?c.lineTo(x,y):c.moveTo(x,y);
+        }
+        c.stroke();
+      } else if(k===3){
+        const a=.5+.34*Math.sin(t*.85), vals=[a,1-a,.55+.3*Math.sin(t*.85+2.1)];
+        const cols=['#B5651D','#1F5FA8','#5FA36A'];
+        c.fillStyle='rgba(181,101,29,'+(0.10+a*0.30).toFixed(3)+')'; c.fillRect(0,0,W,H);
+        vals.forEach((v,i)=>{
+          const bw=112, x=88+i*158, h=(H-116)*v;
+          c.fillStyle='#E6EAEE'; c.fillRect(x,44,bw,H-116);
+          c.fillStyle=cols[i]; c.fillRect(x,44+(H-116-h),bw,h);
+        });
+      } else {
+        const y=t*.85, p=.36;
+        const V=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(v=>{
+          const n=Math.sqrt(3), a=[v[0]/n*1.5,v[1]/n*1.5,v[2]/n*1.5];
+          const x1=a[0]*Math.cos(y)+a[2]*Math.sin(y), z1=-a[0]*Math.sin(y)+a[2]*Math.cos(y);
+          const y2=a[1]*Math.cos(p)-z1*Math.sin(p), z2=a[1]*Math.sin(p)+z1*Math.cos(p);
+          const s=330/(7-z2); return {x:W/2+x1*s, y:H/2-y2*s, z:z2, s:s/60};
+        }).sort((m,n)=>m.z-n.z);
+        for(const v of V){ c.strokeStyle='#9AA6B2'; c.lineWidth=6; c.beginPath(); c.moveTo(W/2,H/2); c.lineTo(v.x,v.y); c.stroke(); }
+        for(const v of V){ c.beginPath(); c.arc(v.x,v.y,17*v.s,0,6.2832); c.fillStyle='#E4E9EE'; c.fill(); c.strokeStyle='#8C99A6'; c.lineWidth=2; c.stroke(); }
+        c.beginPath(); c.arc(W/2,H/2,30,0,6.2832); c.fillStyle='#47535F'; c.fill();
+      }
+      requestAnimationFrame(tick);
+    })(performance.now());
+  });
+}
+
+/* ═══════════ 세트 페이지 ═══════════ */
+function stepBody(s, i){
+  const no=s.no, d=state.sets[no];
+  if(i===1){
+    return '<div class="split">'
+     +'<div class="observe"><p class="colcap">왼쪽 · 관찰</p>'
+       +'<div class="frame"><div class="fbar"><span>'+esc(s.simName)+'</span><span>학생 입장에서 만져 보세요</span></div>'
+       +'<iframe src="'+s.sim+'" title="'+esc(s.title)+' 완성본" loading="lazy"></iframe></div>'
+       +'<div class="rowbtns"><button class="tiny ghost" data-open="'+s.sim+'">새 창으로 크게 보기</button></div></div>'
+     +'<div class="record"><p class="colcap">오른쪽 · 기록</p>'
+       +'<label class="fld"><span class="lb">무엇이 보였습니까<i data-cnt="'+no+'-memo">0 / 20자</i></span>'
+       +'<textarea data-f="'+no+'.s1.memo" placeholder="움직여 보면서 눈에 걸린 것을 그대로 적으세요. 정답을 쓰는 칸이 아닙니다.">'+esc(d.s1.memo)+'</textarea>'
+       +'<p class="hint">설명은 아직 없습니다. 지금은 학생과 같은 조건입니다.</p></label>'
+       +'<label class="fld"><span class="lb">학생이 가장 먼저 물을 질문<i data-cnt="'+no+'-q">0 / 10자</i></span>'
+       +'<textarea data-f="'+no+'.s1.question" placeholder="이걸 교실에 띄웠을 때 첫 손이 올라오며 나올 질문 한 줄">'+esc(d.s1.question)+'</textarea>'
+       +'<p class="hint">이 질문이 다음 단계의 출발점이 됩니다.</p></label>'
+     +'</div></div>';
+  }
+  if(i===2){
+    return '<div class="split">'
+     +'<div class="observe"><p class="colcap">왼쪽 · 뜯어보기</p>'
+       +'<div class="green"><h4>왜 시뮬레이션이어야 하는가</h4><p>'+s.why+'</p></div>'
+       +'<p class="kv"><b>패턴</b> '+esc(s.pattern)+'</p>'
+       +'<p class="kv"><b>조절 변인</b> '+esc(s.varsControl)+'</p>'
+       +'<p class="kv"><b>관찰 변인</b> '+esc(s.varsObserve)+'</p>'
+       +'<div class="divider"></div>'
+       +'<div class="note"><h4>일부러 단순화한 것 — 학생에게 반드시 알릴 것</h4><ul>'
+       + s.simplify.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'
+       +'<div class="red"><h4>AI가 흔히 내는 오류</h4><ol>'
+       + s.errors.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ol></div></div>'
+     +'<div class="record"><p class="colcap">오른쪽 · 기록</p>'
+       +'<p class="hint" style="margin-bottom:11px">화학적으로 무엇이 보장돼야 하는지 한 줄씩 읽고 확인하세요. 이 목록이 곧 <b>완료조건</b>이고, 다음 단계 프롬프트의 두 번째 칸에 그대로 들어갑니다.</p>'
+       +'<ul class="checks">'+s.conditions.map((c,ci)=>
+          '<li><label><input type="checkbox" data-chk="'+no+'.'+ci+'"'+(d.s2.checks[ci]?' checked':'')+'><span>'+c+'</span></label></li>').join('')
+       +'</ul></div></div>';
+  }
+  if(i===3){
+    return '<div class="split">'
+     +'<div class="observe"><p class="colcap">왼쪽 · 프롬프트 전문</p>'
+       +'<pre class="code" data-prompt="'+no+'">'+esc(s.prompt)+'</pre>'
+       +'<div class="rowbtns"><button class="solid" data-copy="'+no+'">프롬프트 복사</button></div>'
+       +'<div class="note" style="margin-top:16px"><h4>다섯 칸 중 하나를 빼고 돌려 보세요</h4>'
+       +'<ul><li><b>완료조건</b>을 통째로 지우고 돌리면 무엇이 무너지는지 보세요. 결과가 확 나빠집니다</li>'
+       +'<li><b>검증</b>을 지우면 AI가 스스로 확인하지 않고 "완성했습니다"로 끝냅니다</li>'
+       +'<li><b>기본기</b>를 지우면 단순화한 가정을 화면에 적지 않아 학생이 모형을 사실로 읽습니다</li></ul></div></div>'
+     +'<div class="record"><p class="colcap">오른쪽 · 기록</p>'
+       +'<label class="fld"><span class="lb">사용한 AI 도구</span>'
+       +'<select data-f="'+no+'.s3.tool"><option value="">고르세요</option>'
+       + TOOLS.map(t=>'<option value="'+esc(t)+'"'+(d.s3.tool===t?' selected':'')+'>'+esc(t)+'</option>').join('')
+       +'</select></label>'
+       +'<label class="fld"><span class="lb">생성 결과 소감<i data-cnt="'+no+'-imp">0 / 20자</i></span>'
+       +'<textarea data-f="'+no+'.s3.impression" placeholder="한 번에 됐는지, 어디가 어긋났는지, 예상과 달랐던 점">'+esc(d.s3.impression)+'</textarea>'
+       +'<p class="hint">아직 검증하지 마세요. 검증은 다음 단계에서 완료조건에 대조해 합니다.</p></label>'
+     +'</div></div>';
+  }
+  if(i===4){
+    const opts=s.conditions.map((c,ci)=>({v:'C'+(ci+1), t:'완료조건 '+(ci+1)+' — '+c.replace(/<[^>]+>/g,'')}));
+    return '<div class="split">'
+     +'<div class="observe"><p class="colcap">왼쪽 · 검증 절차</p>'
+       +'<div class="green"><h4>직접 돌려 볼 것</h4><ul>'
+       + s.verify.map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul></div>'
+       +'<p class="colcap" style="margin-top:18px">대조할 완료조건</p>'+condListHtml(s)
+       +'<p class="hint" style="margin-top:12px">오류를 "이상하다"로 적지 마세요. <b>어느 완료조건에 어긋났는지</b>를 지목하는 것이 검증입니다.</p></div>'
+     +'<div class="record"><p class="colcap">오른쪽 · 기록</p><div data-errs="'+no+'">'
+       + d.s4.errors.map((e,ei)=>errRow(no,ei,e,opts)).join('')
+       +'</div><div class="rowbtns"><button class="tiny" data-adderr="'+no+'">오류 칸 추가</button></div></div></div>';
+  }
+  return '<div class="split">'
+   +'<div class="observe"><p class="colcap">왼쪽 · 변형 사다리</p>'
+     +'<div class="ladder">'+s.ladder.map(r=>
+        '<div class="rung"><div class="lv">'+esc(r[0])+'</div><div class="tx">'+esc(r[1])+'</div></div>').join('')+'</div>'
+     +'<div class="note" style="margin-top:16px"><h4>고를 때 기준</h4>'
+     +'<p>"재미있어 보이는 것"이 아니라 <b>내 진도표에서 지금 막히는 자리</b>를 고르세요. 변형은 그 자리를 뚫는 도구일 때만 값을 합니다.</p></div></div>'
+   +'<div class="record"><p class="colcap">오른쪽 · 기록</p>'
+     +'<label class="fld"><span class="lb">내 진도표에서 꽂을 자리</span>'
+     +'<input type="text" data-f="'+no+'.s5.place" value="'+esc(state.sets[no].s5.place)+'" placeholder="예: 2학기 3단원 4차시, 기체 법칙 도입부"></label>'
+     +'<label class="fld"><span class="lb">무엇을 어떻게 바꿀 것인가<i data-cnt="'+no+'-plan">0 / 20자</i></span>'
+     +'<textarea data-f="'+no+'.s5.plan" placeholder="위 사다리 중 하나를 골라, 우리 반 조건에 맞게 어떻게 손볼지">'+esc(state.sets[no].s5.plan)+'</textarea></label>'
+   +'</div></div>';
+}
+function errRow(no,ei,e,opts){
+  return '<div class="errrow"><div class="top"><span>오류 '+(ei+1)+'</span>'
+   +(ei>1?'<button class="tiny ghost" data-delerr="'+no+'.'+ei+'">삭제</button>':'')+'</div>'
+   +'<label class="fld" style="margin-bottom:10px"><span class="lb">무엇이 잘못 나왔는가</span>'
+   +'<textarea data-f="'+no+'.s4.errors.'+ei+'.text" style="min-height:64px" placeholder="관찰한 그대로. 예: 온도를 4배로 올렸더니 속력도 4배가 되었다">'+esc(e.text)+'</textarea></label>'
+   +'<label class="fld" style="margin-bottom:0"><span class="lb">어긋난 완료조건</span>'
+   +'<select data-f="'+no+'.s4.errors.'+ei+'.cond"><option value="">반드시 지목하세요</option>'
+   + opts.map(o=>'<option value="'+o.v+'"'+(e.cond===o.v?' selected':'')+'>'+esc(o.t)+'</option>').join('')
+   +'</select></label></div>';
+}
+
+function pageSet(s){
+  const no=s.no;
+  return '<section class="page" id="p'+no+'">'
+   +'<p class="eyebrow">SET '+no+' · '+esc(s.pattern)+'</p>'
+   +'<h1>'+esc(s.hook)+'</h1>'
+   +'<p class="lede">'+esc(s.title)+' — 다섯 단계를 차례로 지납니다. 각 단계의 완료조건은 머리에 늘 띄워 둡니다. 잠긴 이유도 숨기지 않습니다.</p>'
+   +'<div class="prog" data-prog="'+no+'"></div>'
+   + STEPS.map((st,k)=>{
+      const i=k+1;
+      return '<div class="step" data-step="'+no+'.'+i+'">'
+       +'<button class="step-head" data-toggle="'+no+'.'+i+'">'
+         +'<span class="step-no">'+st.no+'</span>'
+         +'<span class="step-body-h">'
+           +'<span class="step-title">'+esc(st.name)+' <em>'+esc(st.job)+'</em></span>'
+           +'<span class="step-cond"><b>완료조건</b>'+esc(st.cond)+'</span>'
+           +'<span class="step-cond lockmsg" style="display:none;background:#FDF3F1;border-color:#EFCFC8;color:#8A4034"><b style="color:#8A4034">잠김</b><span class="lockwhy"></span></span>'
+         +'</span>'
+         +'<span class="step-state">—</span>'
+       +'</button>'
+       +'<div class="step-body">'+stepBody(s,i)+'</div></div>';
+     }).join('')
+   +'<div class="card" data-nextcard="'+no+'"><div class="card-head"><h3>다음 세트로</h3><span class="tag">Gate</span></div>'
+     +'<p class="hint" data-nextmsg="'+no+'" style="margin:0 0 12px"></p>'
+     +'<div class="rowbtns"><button class="solid" data-next="'+no+'">다음으로</button></div></div>'
+   +'</section>';
+}
+
+/* ═══════════ 페이지 5 · 워크벤치 ═══════════ */
+function pageWorkbench(){
+  const b=state.bench;
+  return '<section class="page" id="p5">'
+   +'<p class="eyebrow">워크벤치</p>'
+   +'<h1>이번엔 대상이 바뀝니다</h1>'
+   +'<p class="lede">지금까지는 AI에게 시켰습니다. 이제 학생에게 냅니다. 칸은 똑같은 다섯 개입니다.</p>'
+   +'<div class="green"><h4>왜 같은 칸인가</h4><p>'+esc(FRAME.stress)+' 아래 다섯 칸을 채우면 <b>AI 프롬프트</b>와 <b>학생용 루브릭 초안</b>이 동시에 조립됩니다. 하나의 구조가 두 가지 산출물이 되는 것을 눈으로 확인하세요.</p></div>'
+   +'<div class="split">'
+   +'<div class="observe"><p class="colcap">왼쪽 · 관찰 — 오늘 쓴 다섯 칸</p>'
+     + fiveFrameHtml()
+     +'<div class="note" style="margin-top:16px"><h4>기억할 것</h4><p>'+esc(FRAME.stress)+'</p></div></div>'
+   +'<div class="record"><p class="colcap">오른쪽 · 기록 — 내 수업의 다섯 칸</p>'
+     +'<label class="fld"><span class="lb">① 목표 · 성취기준</span>'
+     +'<input type="text" data-b="standard" value="'+esc(b.standard)+'" placeholder="성취기준 코드와 문장 — 교육과정 문서에서 직접 확인해 입력하세요">'
+     +'<p class="hint">코드는 자동으로 채우지 않습니다. 교사가 직접 확인해 옮겨 적으세요.</p></label>'
+     +'<label class="fld"><span class="lb">① 목표 · 학생이 하는 행동으로<i data-bcnt="goal">0 / 20자</i></span>'
+     +'<textarea data-b="goal" placeholder="예: 부피와 압력의 관계를 측정값 두 개를 인용해 입자 충돌로 설명한다">'+esc(b.goal)+'</textarea>'
+     +'<p class="hint">"이해한다"가 아니라 학생이 <b>하는 행동</b>으로 씁니다.</p></label>'
+     +'<label class="fld"><span class="lb">② 완료조건 · 세 가지 이상<i data-bcnt="done">0줄 / 3줄</i></span>'
+     +'<textarea data-b="done" style="min-height:112px" placeholder="한 줄에 하나씩.&#10;학생이 &quot;다 했다&quot;고 말할 수 있는 상태를 적으세요.">'+esc(b.done)+'</textarea>'
+     +'<p class="hint">시작 <b>전에</b> 공개하는 것이 전부입니다. 나머지 세 칸은 여기서 파생됩니다.</p></label>'
+     +'<label class="fld"><span class="lb">③ 검증 · 제출 전 자기점검<i data-bcnt="verify">0 / 15자</i></span>'
+     +'<textarea data-b="verify" placeholder="학생이 제출 전에 스스로 돌려 볼 체크리스트">'+esc(b.verify)+'</textarea></label>'
+     +'<label class="fld"><span class="lb">④ 재시도 · 범위와 횟수<i data-bcnt="retry">0 / 10자</i></span>'
+     +'<textarea data-b="retry" style="min-height:64px" placeholder="재제출을 몇 번까지, 어떤 범위에서 받을지">'+esc(b.retry)+'</textarea></label>'
+     +'<label class="fld"><span class="lb">⑤ 기본기 · 사전 지도와 스캐폴딩<i data-bcnt="basics">0 / 15자</i></span>'
+     +'<textarea data-b="basics" placeholder="이 과제 전에 가르쳐야 할 것과, 언제 스캐폴딩을 걷어낼지">'+esc(b.basics)+'</textarea></label>'
+     +'<label class="fld"><span class="lb">연결할 세트</span>'
+     +'<select data-b="setNo">'+SETS.map(s=>'<option value="'+s.no+'"'+(+b.setNo===s.no?' selected':'')+'>SET '+s.no+' · '+esc(s.title)+'</option>').join('')+'</select>'
+     +'<p class="hint">S5에서 적은 변형 계획이 수업계획안으로 함께 넘어갑니다.</p></label>'
+   +'</div></div>'
+   +'<h2 class="sec">자동 조립된 결과</h2>'
+   +'<div class="card"><div class="card-head"><h3>AI 프롬프트</h3><span class="tag">Assembled</span></div>'
+     +'<pre class="out" id="benchPrompt"></pre>'
+     +'<div class="rowbtns"><button class="solid" data-copytext="benchPrompt">복사</button></div></div>'
+   +'<div class="card"><div class="card-head"><h3>학생용 루브릭 초안</h3><span class="tag">Assembled</span></div>'
+     +'<div id="benchRubric"></div>'
+     +'<div class="rowbtns"><button class="solid" data-copytext="benchRubricText">복사</button></div>'
+     +'<pre class="out" id="benchRubricText" style="display:none"></pre></div>'
+   +'</section>';
+}
+
+function benchLines(){ return String(state.bench.done||'').split('\n').map(x=>x.trim()).filter(Boolean); }
+function benchPromptText(){
+  const b=state.bench, s=SETS.find(x=>x.no===+b.setNo)||SETS[0], d=state.sets[s.no];
+  const L=benchLines();
+  const dash='(아직 비어 있습니다)';
+  return '【목표】\n'
+   +(b.standard?'성취기준 — '+b.standard+'\n':'')
+   +(b.goal||dash)+'\n\n'
+   +'【완료조건】 아래를 모두 만족해야 완성입니다\n'
+   +(L.length?L.map((x,i)=>(i+1)+'. '+x).join('\n'):dash)+'\n\n'
+   +'【검증】 제출 전에 학생이 스스로 확인합니다\n'+(b.verify||dash)+'\n\n'
+   +'【재시도】\n'+(b.retry||dash)+'\n\n'
+   +'【기본기】\n'+(b.basics||dash)+'\n\n'
+   +'【이 과제에 쓰는 도구】\n'
+   +'SET '+s.no+' · '+s.title+' ('+s.pattern+')\n'
+   +'변형 계획 — '+(d.s5.plan||dash)+'\n'
+   +'꽂을 자리 — '+(d.s5.place||dash);
+}
+function benchRubricRows(){
+  const rows=benchLines().map((x,i)=>({
+    c:'완료조건 '+(i+1),
+    hi:x+' — 빠짐없이 충족',
+    mid:x+' — 일부만 충족하거나 근거가 약함',
+    lo:x+' — 충족하지 못함'
+  }));
+  return rows.concat(RUBRIC3);
+}
+function renderBenchOut(){
+  const pe=$('benchPrompt'); if(!pe) return;
+  pe.textContent=benchPromptText();
+  const rows=benchRubricRows();
+  $('benchRubric').innerHTML='<div class="rub">'+rows.map(r=>
+    '<div class="rub-row"><div class="rub-c">'+esc(r.c)+'</div><div class="rub-l">'
+    +'<b>상</b>'+esc(r.hi)+' &nbsp;·&nbsp; <b>중</b>'+esc(r.mid)+' &nbsp;·&nbsp; <b>하</b>'+esc(r.lo)
+    +'</div></div>').join('')+'</div>';
+  $('benchRubricText').textContent=rows.map(r=>
+    '['+r.c+']\n  상 · '+r.hi+'\n  중 · '+r.mid+'\n  하 · '+r.lo).join('\n\n');
+}
+
+/* ═══════════ 페이지 6 · 내보내기 ═══════════ */
+function pageExport(){
+  return '<section class="page" id="p6">'
+   +'<p class="eyebrow">내보내기</p>'
+   +'<h1>연수 산출물 3종</h1>'
+   +'<p class="lede">워크벤치에 적은 다섯 칸과 각 세트에서 남긴 기록이 아래 세 갈래로 갈라져 나갑니다. 각각 복사하거나 마크다운 파일로 내려받으세요.</p>'
+   +'<div class="card"><div class="card-head"><h3>1 · 수업계획안 초안</h3><span class="tag">Lesson plan</span></div>'
+     +'<pre class="out" id="ex1"></pre>'
+     +'<div class="rowbtns"><button class="solid" data-copytext="ex1">복사</button><button data-md="ex1|lesson-plan">마크다운 내려받기</button></div></div>'
+   +'<div class="card"><div class="card-head"><h3>2 · 과정중심 평가도구</h3><span class="tag">Assessment</span></div>'
+     +'<pre class="out" id="ex2"></pre>'
+     +'<div class="rowbtns"><button class="solid" data-copytext="ex2">복사</button><button data-md="ex2|assessment-tool">마크다운 내려받기</button></div></div>'
+   +'<div class="card"><div class="card-head"><h3>3 · 지원 디지털 도구 명세</h3><span class="tag">Tool spec</span></div>'
+     +'<pre class="out" id="ex3"></pre>'
+     +'<div class="rowbtns"><button class="solid" data-copytext="ex3">복사</button><button data-md="ex3|tool-spec">마크다운 내려받기</button></div></div>'
+   +'</section>';
+}
+function curSet(){ return SETS.find(x=>x.no===+state.bench.setNo)||SETS[0]; }
+function ex1Text(){
+  const b=state.bench, s=curSet(), d=state.sets[s.no], L=benchLines();
+  const dash='(비어 있음)';
+  return '# 수업계획안 초안\n\n'
+   +'## 목표\n\n'
+   +'- 성취기준 — '+(b.standard||dash)+'\n'
+   +'- 학생이 하는 행동 — '+(b.goal||dash)+'\n\n'
+   +'## 이 차시 전에 가르칠 것 (기본기)\n\n'+(b.basics||dash)+'\n\n'
+   +'## 쓰는 도구\n\n'
+   +'- SET '+s.no+' · '+s.title+' — '+s.pattern+'\n'
+   +'- 한 줄 훅 — '+s.hook+'\n'
+   +'- 왜 시뮬레이션인가 — '+s.why.replace(/<[^>]+>/g,'')+'\n\n'
+   +'## 변형 계획\n\n'
+   +'- 꽂을 자리 — '+(d.s5.place||dash)+'\n'
+   +'- 무엇을 어떻게 — '+(d.s5.plan||dash)+'\n\n'
+   +'### 고를 수 있었던 변형 사다리\n\n'
+   + s.ladder.map(r=>'- **'+r[0]+'** · '+r[1]).join('\n')+'\n\n'
+   +'## 차시 흐름\n\n'
+   +'| 단계 | 하는 일 | 교사가 미리 주는 것 |\n|---|---|---|\n'
+   +'| 도입 · 본다 | 완성본을 설명 없이 만지게 한다 | 조작할 변인만 안내 |\n'
+   +'| 전개 1 · 뜯어본다 | 무엇이 보장돼야 하는지 확인한다 | 완료조건 전문을 시작 전에 공개 |\n'
+   +'| 전개 2 · 기록한다 | 조건을 하나만 바꿔 가며 측정값을 남긴다 | 기록표 양식과 최소 기록 횟수 |\n'
+   +'| 전개 3 · 검증한다 | 자기 결론을 완료조건에 대조한다 | 자기점검 체크리스트 |\n'
+   +'| 정리 · 바꾼다 | 조건을 바꿔 예측하고 확인한다 | 재제출 범위와 횟수 |\n\n'
+   +'## 학생에게 반드시 알릴 단순화\n\n'
+   + s.simplify.map(x=>'- '+x).join('\n')+'\n\n'
+   +'## 완료조건 (학생 공개용)\n\n'
+   +(L.length?L.map((x,i)=>(i+1)+'. '+x).join('\n'):dash)+'\n';
+}
+function ex2Text(){
+  const b=state.bench, s=curSet(), L=benchLines(), dash='(비어 있음)';
+  const rows=benchRubricRows();
+  return '# 과정중심 평가도구\n\n'
+   +'## 평가 루브릭\n\n'
+   +'| 기준 | 상 | 중 | 하 |\n|---|---|---|---|\n'
+   + rows.map(r=>'| '+r.c+' | '+r.hi+' | '+r.mid+' | '+r.lo+' |').join('\n')+'\n\n'
+   +'## 학생 자기점검 체크리스트\n\n'
+   +'제출 전에 학생이 스스로 통과시킵니다.\n\n'
+   +(L.length?L.map(x=>'- [ ] '+x).join('\n'):'- [ ] '+dash)+'\n'
+   +(b.verify?'\n교사가 지정한 확인 방법 — '+b.verify+'\n':'')+'\n'
+   +'## 재제출 규정\n\n'+(b.retry||dash)+'\n\n'
+   +'## AI 피드백 프롬프트\n\n'
+   +'```\n'
+   +'당신은 고등학교 화학 교사입니다. 학생이 '+s.title+' 탐구로 낸 결과에 형성평가 피드백을 씁니다.\n\n'
+   +'【학생이 도달해야 할 상태】\n'+(b.goal||dash)+'\n\n'
+   +'【완료조건】\n'+(L.length?L.map((x,i)=>(i+1)+'. '+x).join('\n'):dash)+'\n\n'
+   +'【루브릭】\n'+rows.map(r=>'['+r.c+'] 상: '+r.hi+' / 중: '+r.mid+' / 하: '+r.lo).join('\n')+'\n\n'
+   +'【학생 답변】\n(여기에 학생 글을 붙여 넣으세요)\n\n'
+   +'【피드백 작성 지침】\n'
+   +'1. 기준별로 상·중·하 중 하나를 판정하고 근거를 학생 문장에서 직접 인용하세요.\n'
+   +'2. 점수를 매기지 말고, 다음에 무엇을 어떻게 고쳐 쓸지 한 문장짜리 행동 지시를 기준마다 하나씩 주세요.\n'
+   +'3. 화학적 오개념이 보이면 정정하되, 정답을 그대로 알려 주지 말고 다시 확인해 볼 조건을 지정해 주세요.\n'
+   +'4. 전체 400자 이내, 학생에게 직접 말하는 존댓말로 쓰세요.\n'
+   +'```\n';
+}
+function ex3Text(){
+  const s=curSet(), d=state.sets[s.no], dash='(비어 있음)';
+  const errs=d.s4.errors.filter(e=>len(e.text)>0);
+  return '# 지원 디지털 도구 명세 — SET '+s.no+' · '+s.title+'\n\n'
+   +'- 패턴 — '+s.pattern+'\n'
+   +'- 한 줄 훅 — '+s.hook+'\n'
+   +'- 조절 변인 — '+s.varsControl+'\n'
+   +'- 관찰 변인 — '+s.varsObserve+'\n'
+   +'- 사용한 AI 도구 — '+(d.s3.tool||dash)+'\n\n'
+   +'## 사용한 프롬프트 전문\n\n```\n'+s.prompt+'\n```\n\n'
+   +'## 완료조건 목록\n\n'
+   + s.conditions.map((c,i)=>(i+1)+'. '+c.replace(/<[^>]+>/g,'')).join('\n')+'\n\n'
+   +'## 검증 절차\n\n'
+   + s.verify.map(x=>'- '+x).join('\n')+'\n\n'
+   +'## 일부러 단순화한 가정 — 학생에게 반드시 알릴 것\n\n'
+   + s.simplify.map(x=>'- '+x).join('\n')+'\n\n'
+   +'## 검증에서 실제로 발견한 오류\n\n'
+   +(errs.length
+      ? errs.map((e,i)=>{
+          const ci=parseInt(String(e.cond||'').replace('C',''),10);
+          const cond=(ci>=1&&s.conditions[ci-1])?s.conditions[ci-1].replace(/<[^>]+>/g,''):'(지목 안 됨)';
+          return (i+1)+'. '+e.text+'\n   - 어긋난 완료조건 — '+cond;
+        }).join('\n')
+      : dash)+'\n\n'
+   +'## 이 도구가 흔히 실패하는 지점\n\n'
+   + s.errors.map(x=>'- '+x).join('\n')+'\n';
+}
+function renderExports(){
+  if(!$('ex1')) return;
+  $('ex1').textContent=ex1Text();
+  $('ex2').textContent=ex2Text();
+  $('ex3').textContent=ex3Text();
+}
+
+/* ═══════════ 조립 ═══════════ */
+const PAGES=[{id:'p0',lab:'0 체험대'}]
+  .concat(SETS.map(s=>({id:'p'+s.no, lab:s.no+' '+s.title, setNo:s.no})))
+  .concat([{id:'p5',lab:'5 워크벤치'},{id:'p6',lab:'6 내보내기'}]);
+
+function build(){
+  $('wrap').innerHTML = pageBench() + SETS.map(pageSet).join('') + pageWorkbench() + pageExport();
+  $('nav').innerHTML = PAGES.map(p=>
+    '<button data-page="'+p.id+'">'+esc(p.lab)+(p.setNo?'<span class="pin" data-pin="'+p.setNo+'"></span>':'')+'</button>').join('');
+  bindAll(); go(state.ui.page); refreshAll();
+}
+
+function go(id){
+  state.ui.page=id;
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on', p.id===id));
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.page===id));
+  if(id==='p0') startThumbs();
+  if(id==='p5') renderBenchOut();
+  if(id==='p6') renderExports();
+  window.scrollTo({top:0, behavior:'instant' in window ? 'auto' : 'auto'});
+}
+
+/* ═══════════ 갱신 ═══════════ */
+function refreshSet(no){
+  const s=SETS.find(x=>x.no===no), d=state.sets[no];
+  for(let i=1;i<=5;i++){
+    const el=document.querySelector('.step[data-step="'+no+'.'+i+'"]');
+    if(!el) continue;
+    const done=stepDone(no,i), openable=stepOpenable(no,i);
+    el.classList.toggle('locked', !openable);
+    el.classList.toggle('done', done);
+    if(!openable) el.classList.remove('open');
+    else el.classList.toggle('open', state.ui.open[no]===i);
+    el.querySelector('.step-state').textContent = !openable ? '잠김' : (done ? '통과' : '진행 중');
+    const lm=el.querySelector('.lockmsg');
+    lm.style.display = openable ? 'none' : '';
+    if(!openable) lm.querySelector('.lockwhy').textContent=whyLocked(no,i);
+  }
+  const cnt=(k,cur,need,unit)=>{
+    const e=document.querySelector('[data-cnt="'+no+'-'+k+'"]'); if(!e) return;
+    e.textContent=cur+' / '+need+(unit||'자'); e.className=counterCls(cur,need);
+  };
+  cnt('memo', len(d.s1.memo), 20); cnt('q', len(d.s1.question), 10);
+  cnt('imp', len(d.s3.impression), 20); cnt('plan', len(d.s5.plan), 20);
+
+  const prog=document.querySelector('[data-prog="'+no+'"]');
+  if(prog) prog.innerHTML=STEPS.map((st,k)=>{
+    const i=k+1, cls=stepDone(no,i)?'done':(state.ui.open[no]===i?'now':'');
+    return '<i class="'+cls+'">'+st.no+' '+esc(st.name)+(stepDone(no,i)?' ✓':'')+'</i>';
+  }).join('')+'<i class="'+(setDone(no)?'done':'')+'">세트 '+(setDone(no)?'완료':'미완료')+'</i>';
+
+  const msg=document.querySelector('[data-nextmsg="'+no+'"]'),
+        btn=document.querySelector('[data-next="'+no+'"]');
+  if(msg&&btn){
+    const okd=setDone(no)||teacher.unlocked;
+    btn.disabled=!okd;
+    msg.innerHTML = okd
+      ? 'S5까지 통과했습니다. 다음으로 넘어가세요.'
+      : '<b>완료조건</b> — '+esc(STEPS[4].cond)+'. 아직 채우지 못했습니다. 세트끼리는 서로 독립이라, 위 메뉴로 다른 세트를 먼저 해도 됩니다.';
+  }
+  const pin=document.querySelector('[data-pin="'+no+'"]');
+  if(pin) pin.textContent = setDone(no) ? '✓' : '';
+}
+function refreshBenchCounters(){
+  const b=state.bench;
+  const set=(k,txt,ok)=>{ const e=document.querySelector('[data-bcnt="'+k+'"]'); if(e){e.textContent=txt; e.className=ok?'ok':'';} };
+  set('goal', len(b.goal)+' / 20자', len(b.goal)>=20);
+  const L=benchLines(); set('done', L.length+'줄 / 3줄', L.length>=3);
+  set('verify', len(b.verify)+' / 15자', len(b.verify)>=15);
+  set('retry', len(b.retry)+' / 10자', len(b.retry)>=10);
+  set('basics', len(b.basics)+' / 15자', len(b.basics)>=15);
+}
+function refreshAll(){
+  SETS.forEach(s=>refreshSet(s.no));
+  refreshBenchCounters();
+  if(state.ui.page==='p5') renderBenchOut();
+  if(state.ui.page==='p6') renderExports();
+}
+
+/* ═══════════ 이벤트 ═══════════ */
+function setPath(path,val){
+  const p=path.split('.');
+  let o=state.sets[p[0]];
+  for(let i=1;i<p.length-1;i++) o=o[p[i]];
+  o[p[p.length-1]]=val;
+}
+function bindAll(){
+  $('wrap').addEventListener('input', e=>{
+    const t=e.target;
+    if(t.dataset.f){ setPath(t.dataset.f, t.value); refreshSet(+t.dataset.f.split('.')[0]); return; }
+    if(t.dataset.b){ state.bench[t.dataset.b]=t.value; refreshBenchCounters(); renderBenchOut(); return; }
+  });
+  $('wrap').addEventListener('change', e=>{
+    const t=e.target;
+    if(t.dataset.chk){
+      const [no,ci]=t.dataset.chk.split('.');
+      state.sets[no].s2.checks[+ci]=t.checked; refreshSet(+no); return;
+    }
+    if(t.dataset.f){ setPath(t.dataset.f, t.value); refreshSet(+t.dataset.f.split('.')[0]); return; }
+    if(t.dataset.b){ state.bench[t.dataset.b]=t.value; refreshBenchCounters(); renderBenchOut(); return; }
+  });
+  $('wrap').addEventListener('click', e=>{
+    const t=e.target.closest('button'); if(!t) return;
+
+    if(t.dataset.toggle){
+      const [no,i]=t.dataset.toggle.split('.').map(Number);
+      if(!stepOpenable(no,i)){ toast('앞 단계의 완료조건을 먼저 채워야 열립니다 — '+whyLocked(no,i)); return; }
+      state.ui.open[no]=(state.ui.open[no]===i)?0:i;
+      refreshSet(no); return;
+    }
+    if(t.dataset.open){ window.open(t.dataset.open,'_blank','noopener'); return; }
+    if(t.dataset.copy){
+      const s=SETS.find(x=>x.no===+t.dataset.copy);
+      copy(s.prompt,'프롬프트를 복사했습니다. AI 창에 그대로 붙여넣으세요'); return;
+    }
+    if(t.dataset.copytext){
+      const el=$(t.dataset.copytext);
+      copy(el?el.textContent:'', '복사했습니다'); return;
+    }
+    if(t.dataset.md){
+      const [id,name]=t.dataset.md.split('|');
+      download($(id).textContent, name+'.md','text/markdown');
+      toast(name+'.md 파일로 내려받았습니다'); return;
+    }
+    if(t.dataset.adderr){
+      const no=+t.dataset.adderr;
+      state.sets[no].s4.errors.push({text:'',cond:''});
+      redrawErrs(no); return;
+    }
+    if(t.dataset.delerr){
+      const [no,ei]=t.dataset.delerr.split('.').map(Number);
+      state.sets[no].s4.errors.splice(ei,1);
+      redrawErrs(no); return;
+    }
+    if(t.dataset.next){
+      const no=+t.dataset.next;
+      go(no<4 ? 'p'+(no+1) : 'p5');
+      return;
+    }
+  });
+  $('nav').addEventListener('click', e=>{
+    const b=e.target.closest('button'); if(b) go(b.dataset.page);
+  });
+}
+function redrawErrs(no){
+  const s=SETS.find(x=>x.no===no);
+  const opts=s.conditions.map((c,ci)=>({v:'C'+(ci+1), t:'완료조건 '+(ci+1)+' — '+c.replace(/<[^>]+>/g,'')}));
+  const host=document.querySelector('[data-errs="'+no+'"]');
+  host.innerHTML=state.sets[no].s4.errors.map((e,ei)=>errRow(no,ei,e,opts)).join('');
+  refreshSet(no);
+}
+
+/* ═══════════ 저장 · 불러오기 ═══════════
+   브라우저 저장소를 쓰지 않는다. 파일로만 남는다.                        */
+function download(text, filename, mime){
+  const url=URL.createObjectURL(new Blob([text],{type:(mime||'application/json')+';charset=utf-8'}));
+  const a=document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  a.remove(); setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function stamp(){
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes());
+}
+function saveNow(){
+  const out={version:state.version, savedAt:new Date().toISOString(), sets:state.sets, bench:state.bench};
+  const fn='chem-vibecoding-progress_'+stamp()+'.json';
+  download(JSON.stringify(out,null,2), fn);
+  hideNudge(); toast('진행을 '+fn+' 파일로 내려받았습니다. 이어서 할 때 이 파일을 불러오세요');
+}
+function loadFrom(obj){
+  if(!obj || typeof obj!=='object') throw new Error('형식이 아닙니다');
+  SETS.forEach(s=>{
+    const src=obj.sets && (obj.sets[s.no]||obj.sets[String(s.no)]);
+    const blank=blankSet(s);
+    if(!src){ state.sets[s.no]=blank; return; }
+    state.sets[s.no]={
+      s1:{memo:src.s1&&src.s1.memo||'', question:src.s1&&src.s1.question||''},
+      s2:{checks:blank.s2.checks.map((_,i)=> !!(src.s2&&src.s2.checks&&src.s2.checks[i]))},
+      s3:{tool:src.s3&&src.s3.tool||'', impression:src.s3&&src.s3.impression||''},
+      s4:{errors:(src.s4&&Array.isArray(src.s4.errors)&&src.s4.errors.length
+            ? src.s4.errors.map(e=>({text:e&&e.text||'', cond:e&&e.cond||''}))
+            : blank.s4.errors)},
+      s5:{place:src.s5&&src.s5.place||'', plan:src.s5&&src.s5.plan||''}
+    };
+  });
+  const b=obj.bench||{};
+  state.bench={standard:b.standard||'', goal:b.goal||'', done:b.done||'',
+    verify:b.verify||'', retry:b.retry||'', basics:b.basics||'', setNo:+b.setNo||1};
+}
+$('btnSave').addEventListener('click', saveNow);
+$('nudgeSave').addEventListener('click', saveNow);
+$('nudgeNo').addEventListener('click', hideNudge);
+$('btnLoad').addEventListener('click', ()=>$('fileIn').click());
+$('fileIn').addEventListener('change', e=>{
+  const f=e.target.files && e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      loadFrom(JSON.parse(r.result));
+      const page=state.ui.page; build(); go(page);
+      toast('불러왔습니다. 이어서 하세요');
+    }catch(err){ toast('불러오지 못했습니다 — 이 사이트가 저장한 JSON 파일인지 확인해 주세요'); }
+    e.target.value='';
+  };
+  r.readAsText(f);
+});
+window.addEventListener('beforeunload', e=>{
+  const dirty = SETS.some(s=>{
+    const d=state.sets[s.no];
+    return len(d.s1.memo)||len(d.s1.question)||d.s2.checks.some(Boolean)||len(d.s3.impression)
+      ||d.s4.errors.some(x=>len(x.text))||len(d.s5.place)||len(d.s5.plan);
+  }) || Object.keys(state.bench).some(k=>k!=='setNo' && len(state.bench[k]));
+  if(dirty){ e.preventDefault(); e.returnValue=''; }
+});
+
+/* ═══════════ 저장 알림 — 5분마다 한 번 ═══════════ */
+function hideNudge(){ $('nudge').classList.remove('on'); }
+setInterval(()=>{ $('nudge').classList.add('on'); }, 5*60*1000);
+
+/* ═══════════ 강사 모드 ═══════════ */
+$('btnTeacher').addEventListener('click', ()=>{
+  const p=$('tpanel'); p.classList.toggle('open');
+  if(p.classList.contains('open')) $('tcode').focus();
+});
+function applyTeacher(){
+  document.body.classList.toggle('teacher', teacher.unlocked);
+  document.body.classList.toggle('project', teacher.project);
+  $('tproj').textContent = teacher.project ? '투사 모드 끄기' : '투사 모드 켜기';
+  refreshAll();
+}
+$('tgo').addEventListener('click', ()=>{
+  if($('tcode').value.trim()===TEACHER_CODE){
+    teacher.unlocked=true; $('tcode').value=''; applyTeacher();
+    toast('강사 모드입니다. 전체 잠금이 해제되었습니다');
+  }else{ toast('코드가 맞지 않습니다'); $('tcode').select(); }
+});
+$('tcode').addEventListener('keydown', e=>{ if(e.key==='Enter') $('tgo').click(); });
+$('tproj').addEventListener('click', ()=>{
+  if(!teacher.unlocked){ toast('강사 코드를 먼저 넣어 주세요'); return; }
+  teacher.project=!teacher.project; applyTeacher();
+  toast(teacher.project?'투사 모드 — 글자 1.35배, 계기판 수치 2배':'투사 모드를 껐습니다');
+});
+$('toff').addEventListener('click', ()=>{
+  teacher.unlocked=false; teacher.project=false; applyTeacher();
+  $('tpanel').classList.remove('open');
+  toast('강사 모드를 껐습니다. 잠금이 다시 걸립니다');
+});
+
+/* ═══════════ 유틸 ═══════════ */
+async function copy(text,msg){
+  try{ await navigator.clipboard.writeText(text); toast(msg); }
+  catch(e){
+    const ta=document.createElement('textarea');
+    ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); toast(msg); }
+    catch(e2){ toast('복사하지 못했습니다. 직접 선택해 복사해 주세요'); }
+    ta.remove();
+  }
+}
+let toastT;
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2800);
+}
+
+build();
+})();
+</script>
+</body>
+</html>

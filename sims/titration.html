@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>산-염기 적정 — 실시간 곡선</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --paper:#E9ECEF; --panel:#FFFFFF; --ink:#16202B; --muted:#5F6B78;
+    --line:#D2D8DF; --line-soft:#E6EAEE;
+    --gauge:#C0392B; --particle:#1F5FA8; --lock:#1B7A5A;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:28px 20px 72px}
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  h1{font-size:clamp(26px,4.4vw,40px);line-height:1.18;font-weight:800;letter-spacing:-.025em;margin:0 0 10px}
+  .lede{color:var(--muted);max-width:56ch;margin:0 0 26px;font-size:15px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+  .card-head{display:flex;align-items:baseline;gap:10px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--line-soft)}
+  .card-head h2{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em}
+  .card-head .tag{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .stage{display:grid;grid-template-columns:1fr 250px;gap:20px;align-items:start}
+  @media(max-width:820px){.stage{grid-template-columns:1fr}}
+  .boxwrap{background:#F5F7F9;border:1px solid var(--line);border-radius:8px;padding:10px;position:relative}
+  canvas#plot{display:block;width:100%;height:auto}
+  .boxcap{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);padding:8px 2px 0;letter-spacing:.04em}
+  .gauges{display:flex;flex-direction:column;gap:0}
+  .g{padding:11px 0;border-bottom:1px solid var(--line-soft)}
+  .g:last-child{border-bottom:0}
+  .g-label{font-family:var(--mono);font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:3px}
+  .g-val{font-family:var(--mono);font-size:25px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .g-unit{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:5px;font-weight:400}
+  .g.locked{background:#F1F8F4;border:1px solid #CBE5D8;border-radius:8px;padding:12px 13px;margin-top:12px}
+  .g.locked .g-val{color:var(--lock)}
+  .g.locked .g-note{font-size:11.5px;color:#3E6B58;line-height:1.5;margin-top:5px}
+  .g.warn{background:#FDF3F1;border:1px solid #EFCFC8}
+  .g.warn .g-val{color:var(--gauge);font-size:15px;line-height:1.4}
+  .g.warn .g-note{font-size:11.5px;color:#8A4034;line-height:1.5;margin-top:5px}
+  .flask{height:52px;border-radius:8px;border:1px solid var(--line);margin-top:12px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#33404D;transition:background .25s}
+  .controls{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:20px}
+  @media(max-width:700px){.controls{grid-template-columns:1fr}}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;font-weight:600;margin-bottom:7px}
+  .ctl label b{font-family:var(--mono);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+  .ctl input[type=range]{width:100%;accent-color:var(--particle);cursor:pointer}
+  .ctl select{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:6px;font-family:var(--sans);font-size:13px;background:#FCFDFE;color:var(--ink)}
+  .ctl .hint{font-size:11.5px;color:var(--muted);margin-top:5px;line-height:1.45}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .presets span{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);align-self:center;margin-right:2px}
+  button{font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 13px;transition:background .12s,border-color .12s}
+  button:hover{background:#F2F5F8;border-color:#B9C2CC}
+  button:focus-visible{outline:2px solid var(--particle);outline-offset:2px}
+  button.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.solid:hover{background:#2A3947;border-color:#2A3947}
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums}
+  th{text-align:right;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  td{padding:7px 8px;border-bottom:1px solid var(--line-soft);text-align:right}
+  tr:last-child td{border-bottom:0}
+  .del{background:none;border:0;color:var(--muted);padding:0 4px;font-size:15px;line-height:1}
+  .del:hover{color:var(--gauge);background:none}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:22px 10px;border:1px dashed var(--line);border-radius:8px}
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;border:1px solid rgba(0,0,0,.15);vertical-align:-1px;margin-right:5px}
+  details.note{background:#FDFBF4;border:1px solid #E8DFC4;border-radius:10px;padding:16px 20px}
+  details.note summary{cursor:pointer;font-weight:700;font-size:14px;list-style:none;display:flex;align-items:center;gap:8px}
+  details.note summary::-webkit-details-marker{display:none}
+  details.note summary::before{content:"▸";color:#A08A42;font-size:12px;transition:transform .15s}
+  details.note[open] summary::before{transform:rotate(90deg)}
+  details.note h3{font-size:12.5px;margin:18px 0 7px;letter-spacing:.02em}
+  details.note ul{margin:0;padding-left:19px;font-size:13px;color:#4A4232;line-height:1.7}
+  details.note li{margin-bottom:4px}
+  details.note code{font-family:var(--mono);font-size:11.5px;background:#F1EAD6;padding:1px 5px;border-radius:3px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:7px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">산-염기 적정 · 실시간 곡선</p>
+  <h1>한 시간에 곡선 하나밖에<br>못 얻던 것을, 스무 개 겹쳐 본다</h1>
+  <p class="lede">조건을 바꾸고 <b>곡선 겹치기</b>를 누르세요. 지난 곡선이 흐리게 남습니다. 강산과 약산의 모양이 어디서부터 갈라지는지, 겹쳐 놓아야 비로소 보입니다.</p>
+
+  <section class="card">
+    <div class="card-head"><h2>적정 곡선</h2><span class="tag">Live</span></div>
+
+    <div class="stage">
+      <div>
+        <div class="boxwrap"><canvas id="plot" width="1120" height="700"></canvas></div>
+        <div class="boxcap">
+          <span id="capL">0.100 M 강산 25.0 mL</span>
+          <span id="capR">겹친 곡선 0개</span>
+        </div>
+      </div>
+
+      <div class="gauges">
+        <div class="g">
+          <span class="g-label">현재 pH</span>
+          <span class="g-val" id="vPH">1.00</span>
+        </div>
+        <div class="g">
+          <span class="g-label">넣은 적정액</span>
+          <span class="g-val" id="vVol">0.0</span><span class="g-unit">mL</span>
+        </div>
+        <div class="g">
+          <span class="g-label">총 부피</span>
+          <span class="g-val" id="vTot">25.0</span><span class="g-unit">mL</span>
+        </div>
+
+        <div class="g locked">
+          <span class="g-label">당량점</span>
+          <span class="g-val" id="vEq">pH 7.00</span>
+          <p class="g-note" id="eqNote">강산-강염기일 때만 7입니다.</p>
+        </div>
+
+        <div class="g locked" id="halfBox" style="display:none">
+          <span class="g-label">반당량점 pH = pKa</span>
+          <span class="g-val" id="vHalf">4.74</span>
+          <p class="g-note" id="halfNote">pKa 4.74 · 완충 구간의 한가운데입니다.</p>
+        </div>
+
+        <div class="g warn" id="indBox">
+          <span class="g-label">지시약 판정</span>
+          <span class="g-val" id="vInd">—</span>
+          <p class="g-note" id="indNote"></p>
+        </div>
+
+        <div class="flask" id="flask">플라스크 색</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="ctl">
+        <label>플라스크 속 물질</label>
+        <select id="sMode">
+          <option value="acid">산을 염기로 적정</option>
+          <option value="base">염기를 산으로 적정</option>
+        </select>
+        <p class="hint">어느 쪽을 뷰렛에 넣느냐에 따라 곡선이 위아래로 뒤집힙니다.</p>
+      </div>
+      <div class="ctl">
+        <label>산의 종류</label>
+        <select id="sAcid">
+          <option value="1e6">강산 HCl — 완전 이온화</option>
+          <option value="1.8e-4">약산 폼산 HCOOH — Ka 1.8×10⁻⁴</option>
+          <option value="1.8e-5" selected>약산 아세트산 CH₃COOH — Ka 1.8×10⁻⁵</option>
+          <option value="6.3e-8">약산 인산이수소이온 — Ka 6.3×10⁻⁸</option>
+          <option value="3.0e-8">약산 하이포아염소산 HClO — Ka 3.0×10⁻⁸</option>
+        </select>
+        <p class="hint">Ka가 작을수록 약합니다. 완충 구간의 높이가 곧 pKa입니다.</p>
+      </div>
+      <div class="ctl">
+        <label>염기의 종류</label>
+        <select id="sBase">
+          <option value="1e6" selected>강염기 NaOH — 완전 이온화</option>
+          <option value="1.8e-5">약염기 암모니아 NH₃ — Kb 1.8×10⁻⁵</option>
+          <option value="4.4e-4">약염기 메틸아민 CH₃NH₂ — Kb 4.4×10⁻⁴</option>
+        </select>
+        <p class="hint">약산-약염기 조합은 당량점의 급변이 거의 사라집니다.</p>
+      </div>
+      <div class="ctl">
+        <label>플라스크 농도 <b><span id="lCa">0.100</span> M</b></label>
+        <input type="range" id="sCa" min="10" max="200" step="5" value="100">
+        <p class="hint">묽을수록 급변 구간이 짧아져 지시약 선택이 까다로워집니다.</p>
+      </div>
+      <div class="ctl">
+        <label>플라스크 부피 <b><span id="lVa">25.0</span> mL</b></label>
+        <input type="range" id="sVa" min="100" max="500" step="25" value="250">
+        <p class="hint">적정액이 들어갈수록 총 부피가 늘어납니다. 희석 효과가 곡선에 반영됩니다.</p>
+      </div>
+      <div class="ctl">
+        <label>적정액 농도 <b><span id="lCb">0.100</span> M</b></label>
+        <input type="range" id="sCb" min="10" max="200" step="5" value="100">
+        <p class="hint">당량점의 <i>부피</i>는 바뀌지만 당량점의 <i>pH</i>는 거의 그대로입니다.</p>
+      </div>
+      <div class="ctl">
+        <label>넣은 적정액 <b><span id="lVb">0.0</span> mL</b></label>
+        <input type="range" id="sVb" min="0" max="1000" step="1" value="0">
+        <p class="hint">뷰렛 꼭지입니다. 급변 구간에서는 한 방울에 pH가 몇 단위씩 뜁니다.</p>
+      </div>
+      <div class="ctl">
+        <label>지시약</label>
+        <select id="sInd">
+          <option value="0">없음</option>
+          <option value="1">메틸오렌지 — 3.1 ~ 4.4</option>
+          <option value="2">메틸레드 — 4.4 ~ 6.2</option>
+          <option value="3">리트머스 — 5.0 ~ 8.0</option>
+          <option value="4">브로모티몰블루 — 6.0 ~ 7.6</option>
+          <option value="5" selected>페놀프탈레인 — 8.2 ~ 10.0</option>
+        </select>
+        <p class="hint">변색 범위가 pH 급변 구간 안에 들어올 때만 쓸 수 있습니다.</p>
+      </div>
+      <div class="ctl">
+        <label>표시</label>
+        <select id="sShow">
+          <option value="all" selected>완충 구간·당량점·변색 띠 모두</option>
+          <option value="curve">곡선만</option>
+        </select>
+        <p class="hint">학생에게 처음 보여줄 때는 곡선만 두고 물어보세요.</p>
+      </div>
+    </div>
+
+    <div class="presets">
+      <span>미리 맞춘 조건</span>
+      <button data-p="ss">강산-강염기</button>
+      <button data-p="ws">아세트산-강염기</button>
+      <button data-p="bs">암모니아-강산</button>
+      <button data-p="ww">약산-약염기</button>
+      <button data-p="hold">곡선 겹치기</button>
+      <button data-p="clearHold">겹친 곡선 지우기</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>측정값 기록</h2><span class="tag">Step 1</span></div>
+    <p class="lede" style="margin-bottom:16px">조건을 하나만 바꿔 가며 기록하세요. 당량점 pH가 7에서 언제 벗어나는지가 핵심입니다.</p>
+    <div id="tableArea"><p class="empty">아직 기록이 없습니다. 아래 버튼으로 현재 조건의 값을 담아 두세요.</p></div>
+    <div style="display:flex;gap:9px;margin-top:16px;flex-wrap:wrap">
+      <button class="solid" id="rec">현재 조건 기록</button>
+      <button id="clr">전체 지우기</button>
+    </div>
+  </section>
+
+  <details class="note">
+    <summary>교사 노트 — 이 시뮬레이션이 세운 가정과 한계</summary>
+    <h3>화학적으로 보장한 것</h3>
+    <ul>
+      <li>매 점의 pH를 <code>전하 균형식</code>으로 직접 수치해서 구합니다. 근사 공식을 조건별로 갈아 끼우지 않습니다</li>
+      <li>당량점 pH는 <b>강산-강염기일 때만 7</b>입니다. 약산-강염기는 pH &gt; 7, 약염기-강산은 pH &lt; 7이 자동으로 나옵니다</li>
+      <li>약산 적정에는 완충 구간이 나타나고, 반당량점에서 <code>pH = pKa</code>가 성립합니다. 다만 이 시뮬은 근사식이 아니라 전하 균형식을 정확히 풀기 때문에, 실제 값은 pKa보다 소수 셋째 자리 수준으로 아주 조금 높게 나옵니다. <b>pH = pKa 쪽이 근사</b>라는 점을 학생에게 짚어 줄 수 있는 자리입니다</li>
+      <li>적정액이 들어갈수록 총 부피가 늘어나는 <b>희석 효과</b>가 모든 계산에 들어 있습니다</li>
+      <li>지시약은 변색 범위의 중점이 pH 급변 구간(당량점 부피의 ±1%) 안에 들어올 때만 사용 가능으로 판정합니다</li>
+    </ul>
+    <h3>일부러 단순화한 것 — 학생에게 반드시 말해 주세요</h3>
+    <ul>
+      <li>활동도 대신 농도를 씁니다. 진한 용액에서는 실제와 어긋납니다</li>
+      <li>온도는 25 ℃ 고정이고 <code>Kw</code>는 1.0×10⁻¹⁴로 둡니다</li>
+      <li>이산화탄소 용해로 인한 오차는 무시합니다</li>
+      <li>일양성자산·일양성자염기만 다룹니다. 인산 같은 이양성자산은 범위 밖입니다</li>
+    </ul>
+    <h3>AI에게 이런 시뮬을 시켰을 때 흔히 나오는 오류</h3>
+    <ul>
+      <li>모든 조합에 강산-강염기 공식을 씀 — 완충 구간이 통째로 사라짐</li>
+      <li>당량점 pH를 무조건 7로 찍음 — 가수분해를 계산하지 않음</li>
+      <li>반당량점에서 pH가 pKa와 맞지 않음 — 헨더슨–하셀바흐를 안 쓴 것</li>
+      <li>적정액 부피가 늘어도 희석을 반영하지 않음 — 곡선이 부자연스럽게 가파름</li>
+      <li>지시약을 장식으로만 씀 — 어느 것을 골라도 색이 당량점에서 변하게 만듦</li>
+    </ul>
+  </details>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const KW=1.0e-14, STRONG=1e6;
+const CW=1120, CH=700, PAD_L=76, PAD_R=26, PAD_T=26, PAD_B=54;
+
+const plot=$('plot'), ctx=plot.getContext('2d');
+
+/* ═══ 상태 ═══ */
+let mode='acid', Ka=1.8e-5, Kb=STRONG;
+let Ca=0.100, Va=25.0, Cb=0.100, Vb=0.0;
+let indIdx=5, showAll=true;
+let held=[], records=[];
+
+const INDICATORS=[
+  null,
+  {name:'메틸오렌지', lo:3.1, hi:4.4, acid:'#D9422B', base:'#F2C230'},
+  {name:'메틸레드',   lo:4.4, hi:6.2, acid:'#CC3B31', base:'#F0D264'},
+  {name:'리트머스',   lo:5.0, hi:8.0, acid:'#C74A3E', base:'#3A6FA8'},
+  {name:'브로모티몰블루', lo:6.0, hi:7.6, acid:'#E8D44D', base:'#2E6FB7'},
+  {name:'페놀프탈레인', lo:8.2, hi:10.0, acid:'#F7F9FA', base:'#D65DA0'}
+];
+
+/* ═══ pH 계산 — 전하 균형식의 정확해 ═══
+   플라스크와 뷰렛의 역할과 무관하게, 계 안의 총 산 농도·총 염기 농도만 있으면 된다.
+   [BH+] + [H+] = [A-] + [OH-]
+   [BH+] = Ctb·h/(h+Ka_BH)   ([Na+]는 Ka_BH→0 인 극한이므로 강염기도 같은 식으로 처리된다)
+   [A-]  = Cta·Ka/(Ka+h)     (강산은 Ka→∞ 극한)                                        */
+function imbalance(h, Cta, ka, Ctb, kb){
+  const kaBH = KW/kb;
+  return Ctb*h/(h+kaBH) + h - Cta*ka/(ka+h) - KW/h;
+}
+function solvePH(Cta, ka, Ctb, kb){
+  let lo=-2, hi=16;                       // imbalance는 pH에 대해 단조감소한다
+  for(let i=0;i<80;i++){
+    const mid=(lo+hi)*0.5;
+    if(imbalance(Math.pow(10,-mid), Cta, ka, Ctb, kb)>0) lo=mid; else hi=mid;
+  }
+  return (lo+hi)*0.5;
+}
+/* 적정액 vb mL를 넣었을 때의 pH — 희석은 총 부피로 자동 반영된다 */
+function phAt(vb){
+  const V=Va+vb;
+  if(mode==='acid') return solvePH(Ca*Va/V, Ka, Cb*vb/V, Kb);
+  return solvePH(Cb*vb/V, Ka, Ca*Va/V, Kb);
+}
+function analyteC(){ return Ca; }
+function eqVolume(){ return Ca*Va/Cb; }   // 몰수가 같아지는 부피
+function isWeakAnalyte(){ return mode==='acid' ? Ka<1e3 : Kb<1e3; }
+function pKaOf(){ return mode==='acid' ? -Math.log10(Ka) : -Math.log10(KW/Kb); }
+
+/* 급변 구간 — 당량점 부피의 ±1% */
+function jumpRange(){
+  const ve=eqVolume();
+  const a=phAt(ve*0.99), b=phAt(ve*1.01);
+  return [Math.min(a,b), Math.max(a,b)];
+}
+function indicatorVerdict(){
+  const ind=INDICATORS[indIdx];
+  if(!ind) return {ok:null, text:'지시약 없음', note:'지시약을 골라야 판정할 수 있습니다.'};
+  const [j0,j1]=jumpRange(), mid=(ind.lo+ind.hi)/2;
+  const inside = mid>=j0 && mid<=j1;
+  const full   = ind.lo>=j0 && ind.hi<=j1;
+  const jr='급변 구간 pH '+j0.toFixed(1)+' ~ '+j1.toFixed(1);
+  if(full)   return {ok:true,  text:'사용 가능', note:ind.name+'의 변색 범위 전체가 급변 구간 안에 있습니다. '+jr};
+  if(inside) return {ok:true,  text:'사용 가능', note:ind.name+'의 변색 중점이 급변 구간 안에 있습니다. '+jr};
+  return {ok:false, text:'사용 불가', note:ind.name+'은 pH '+ind.lo.toFixed(1)+'~'+ind.hi.toFixed(1)+'에서 변합니다. 이 적정의 '+jr+'을 벗어나므로 당량점을 알려 주지 못합니다.'};
+}
+
+/* ═══ 곡선 표본 ═══ */
+function vMax(){ return Math.max(eqVolume()*2, 5); }
+function sampleCurve(){
+  const n=560, vm=vMax(), pts=new Array(n+1);
+  for(let i=0;i<=n;i++){ const v=vm*i/n; pts[i]=[v, phAt(v)]; }
+  return pts;
+}
+
+/* ═══ 그리기 ═══ */
+function X(v){ return PAD_L+(v/vMax())*(CW-PAD_L-PAD_R); }
+function Y(ph){ return CH-PAD_B-(ph/14)*(CH-PAD_T-PAD_B); }
+
+function drawAxes(){
+  ctx.strokeStyle='#E6EAEE'; ctx.lineWidth=1;
+  ctx.font='500 17px ui-monospace,monospace'; ctx.fillStyle='#5F6B78';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let ph=0; ph<=14; ph+=2){
+    const y=Y(ph);
+    ctx.beginPath(); ctx.moveTo(PAD_L,y); ctx.lineTo(CW-PAD_R,y); ctx.stroke();
+    ctx.fillText(String(ph), PAD_L-12, y);
+  }
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  const vm=vMax(), stepChoices=[1,2,5,10,20,25,50,100];
+  let stp=stepChoices.find(s=>vm/s<=9)||100;
+  for(let v=0; v<=vm+1e-9; v+=stp){
+    const x=X(v);
+    ctx.strokeStyle='#EEF1F4'; ctx.beginPath(); ctx.moveTo(x,PAD_T); ctx.lineTo(x,CH-PAD_B); ctx.stroke();
+    ctx.fillText(v.toFixed(0), x, CH-PAD_B+10);
+  }
+  ctx.strokeStyle='#B9C2CC'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(PAD_L,PAD_T); ctx.lineTo(PAD_L,CH-PAD_B); ctx.lineTo(CW-PAD_R,CH-PAD_B); ctx.stroke();
+  ctx.textAlign='left'; ctx.fillStyle='#5F6B78'; ctx.font='500 17px ui-monospace,monospace';
+  ctx.fillText('pH', PAD_L-64, PAD_T-4);
+  ctx.textAlign='right';
+  ctx.fillText('넣은 적정액 mL', CW-PAD_R, CH-PAD_B+28);
+  ctx.textAlign='left';
+}
+
+function drawBands(){
+  const ind=INDICATORS[indIdx];
+  if(ind){
+    ctx.fillStyle='rgba(31,95,168,.10)';
+    ctx.fillRect(PAD_L, Y(ind.hi), CW-PAD_L-PAD_R, Y(ind.lo)-Y(ind.hi));
+    ctx.fillStyle='#4A6B92'; ctx.font='500 16px ui-monospace,monospace'; ctx.textAlign='left';
+    ctx.fillText(ind.name+' 변색 범위', PAD_L+10, Y(ind.hi)-6);
+  }
+  if(isWeakAnalyte()){
+    const ve=eqVolume();
+    ctx.fillStyle='rgba(27,122,90,.09)';
+    ctx.fillRect(X(ve*0.1), PAD_T, X(ve*0.9)-X(ve*0.1), CH-PAD_T-PAD_B);
+    ctx.fillStyle='#1B7A5A'; ctx.font='500 16px ui-monospace,monospace'; ctx.textAlign='center';
+    ctx.fillText('완충 구간', X(ve*0.5), PAD_T+20);
+    ctx.textAlign='left';
+  }
+}
+
+function drawMarkers(){
+  const ve=eqVolume(), phe=phAt(ve);
+  ctx.setLineDash([6,5]); ctx.strokeStyle='#C0392B'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(X(ve),CH-PAD_B); ctx.lineTo(X(ve),Y(phe)); ctx.lineTo(PAD_L,Y(phe)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#C0392B'; ctx.beginPath(); ctx.arc(X(ve),Y(phe),6,0,6.2832); ctx.fill();
+  ctx.font='600 17px ui-monospace,monospace'; ctx.textAlign='left';
+  ctx.fillText('당량점 pH '+phe.toFixed(2), X(ve)+11, Y(phe)-11);
+
+  if(isWeakAnalyte()){
+    const vh=ve*0.5, phh=phAt(vh);
+    ctx.fillStyle='#1B7A5A'; ctx.beginPath(); ctx.arc(X(vh),Y(phh),5,0,6.2832); ctx.fill();
+    ctx.font='600 16px ui-monospace,monospace';
+    ctx.fillText('반당량점 pH '+phh.toFixed(3)+' ≈ pKa '+pKaOf().toFixed(3), X(vh)+10, Y(phh)+22);
+  }
+}
+
+function drawCurve(pts, color, width, alpha){
+  ctx.globalAlpha=alpha; ctx.strokeStyle=color; ctx.lineWidth=width;
+  ctx.lineJoin='round'; ctx.beginPath();
+  pts.forEach((p,i)=>{ const x=X(p[0]), y=Y(p[1]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke(); ctx.globalAlpha=1;
+}
+
+function render(){
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,CW,CH);
+  drawAxes();
+  if(showAll) drawBands();
+  for(const h of held) drawCurve(h.pts, '#9BAAB9', 2, .55);
+  const pts=sampleCurve();
+  drawCurve(pts, '#1F5FA8', 3.4, 1);
+  if(showAll) drawMarkers();
+
+  const ph=phAt(Vb);
+  ctx.fillStyle='#C0392B'; ctx.beginPath(); ctx.arc(X(Vb),Y(ph),8,0,6.2832); ctx.fill();
+  ctx.strokeStyle='#fff'; ctx.lineWidth=2.5; ctx.stroke();
+}
+
+/* ═══ 표시 ═══ */
+function lerpHex(a,b,t){
+  const pa=[1,3,5].map(i=>parseInt(a.substr(i,2),16));
+  const pb=[1,3,5].map(i=>parseInt(b.substr(i,2),16));
+  return '#'+pa.map((v,i)=>Math.round(v+(pb[i]-v)*t).toString(16).padStart(2,'0')).join('');
+}
+function updateUI(){
+  const ph=phAt(Vb), ve=eqVolume(), phe=phAt(ve);
+  $('vPH').textContent=ph.toFixed(2);
+  $('vVol').textContent=Vb.toFixed(1);
+  $('vTot').textContent=(Va+Vb).toFixed(1);
+  $('vEq').textContent='pH '+phe.toFixed(2);
+
+  const strongA = Ka>=1e3, strongB = Kb>=1e3;
+  $('eqNote').textContent = (strongA&&strongB)
+    ? '강산-강염기이므로 정확히 7입니다.'
+    : (strongB ? '약산-강염기이므로 짝염기의 가수분해로 pH > 7이 됩니다.'
+               : (strongA ? '약염기-강산이므로 짝산의 가수분해로 pH < 7이 됩니다.'
+                          : '약산-약염기입니다. 급변이 거의 사라져 지시약으로는 당량점을 잡기 어렵습니다.'));
+
+  if(isWeakAnalyte()){
+    $('halfBox').style.display='';
+    $('vHalf').textContent=phAt(ve*0.5).toFixed(3);
+    $('halfNote').textContent='pKa '+pKaOf().toFixed(3)+' · 완충 구간의 한가운데입니다. '
+      +'pH = pKa는 헨더슨–하셀바흐의 근사이고, 여기서는 전하 균형식을 정확히 풀기 때문에 소수 셋째 자리에서 아주 조금 어긋납니다.';
+  } else $('halfBox').style.display='none';
+
+  const vd=indicatorVerdict(), box=$('indBox');
+  $('vInd').textContent=vd.text; $('indNote').textContent=vd.note;
+  box.className = vd.ok===false ? 'g warn' : 'g locked';
+
+  const ind=INDICATORS[indIdx], fl=$('flask');
+  if(!ind){ fl.style.background='#F5F7F9'; fl.textContent='지시약 없음'; }
+  else{
+    const t=Math.max(0,Math.min(1,(ph-ind.lo)/(ind.hi-ind.lo)));
+    fl.style.background=lerpHex(ind.acid, ind.base, t);
+    fl.textContent = t<=0 ? '산성 쪽 색' : (t>=1 ? '염기성 쪽 색' : '변색 중');
+  }
+
+  const aName = Ka>=1e3?'강산':'약산', bName = Kb>=1e3?'강염기':'약염기';
+  $('capL').textContent = (mode==='acid')
+    ? Ca.toFixed(3)+' M '+aName+' '+Va.toFixed(1)+' mL ← '+Cb.toFixed(3)+' M '+bName
+    : Ca.toFixed(3)+' M '+bName+' '+Va.toFixed(1)+' mL ← '+Cb.toFixed(3)+' M '+aName;
+  $('capR').textContent='겹친 곡선 '+held.length+'개';
+}
+function refresh(){ render(); updateUI(); }
+
+/* ═══ 컨트롤 ═══ */
+function syncVbSlider(){
+  const vm=vMax();
+  $('sVb').max=Math.round(vm*10);
+  if(Vb>vm){ Vb=vm; $('sVb').value=Math.round(Vb*10); $('lVb').textContent=Vb.toFixed(1); }
+}
+$('sMode').addEventListener('change',e=>{ mode=e.target.value; refresh(); });
+$('sAcid').addEventListener('change',e=>{ Ka=+e.target.value; syncVbSlider(); refresh(); });
+$('sBase').addEventListener('change',e=>{ Kb=+e.target.value; syncVbSlider(); refresh(); });
+$('sInd').addEventListener('change',e=>{ indIdx=+e.target.value; refresh(); });
+$('sShow').addEventListener('change',e=>{ showAll=(e.target.value==='all'); refresh(); });
+$('sCa').addEventListener('input',e=>{ Ca=+e.target.value/1000; $('lCa').textContent=Ca.toFixed(3); syncVbSlider(); refresh(); });
+$('sVa').addEventListener('input',e=>{ Va=+e.target.value/10; $('lVa').textContent=Va.toFixed(1); syncVbSlider(); refresh(); });
+$('sCb').addEventListener('input',e=>{ Cb=+e.target.value/1000; $('lCb').textContent=Cb.toFixed(3); syncVbSlider(); refresh(); });
+$('sVb').addEventListener('input',e=>{ Vb=+e.target.value/10; $('lVb').textContent=Vb.toFixed(1); refresh(); });
+
+function applyPreset(a,b,m){
+  mode=m; Ka=a; Kb=b;
+  $('sMode').value=m; $('sAcid').value=String(a); $('sBase').value=String(b);
+  syncVbSlider(); refresh();
+}
+document.querySelectorAll('.presets button').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const p=btn.dataset.p;
+    if(p==='ss'){ applyPreset(1e6,1e6,'acid'); toast('강산을 강염기로 적정합니다. 당량점 pH를 보세요'); }
+    if(p==='ws'){ applyPreset(1.8e-5,1e6,'acid'); toast('아세트산을 강염기로 적정합니다. 완충 구간이 생겼습니다'); }
+    if(p==='bs'){ applyPreset(1e6,1.8e-5,'base'); toast('암모니아를 강산으로 적정합니다. 곡선이 뒤집힙니다'); }
+    if(p==='ww'){ applyPreset(1.8e-5,1.8e-5,'acid'); toast('약산-약염기입니다. 급변이 거의 사라집니다'); }
+    if(p==='hold'){
+      held.push({pts:sampleCurve()});
+      if(held.length>20) held.shift();
+      toast('곡선을 겹쳤습니다 — 총 '+held.length+'개'); refresh();
+    }
+    if(p==='clearHold'){ held=[]; toast('겹친 곡선을 지웠습니다'); refresh(); }
+  });
+});
+
+/* ═══ 기록표 ═══ */
+function renderTable(){
+  const a=$('tableArea');
+  if(!records.length){
+    a.innerHTML='<p class="empty">아직 기록이 없습니다. 아래 버튼으로 현재 조건의 값을 담아 두세요.</p>'; return;
+  }
+  let h='<table><thead><tr><th>#</th><th>조합</th><th>농도 M</th><th>당량 mL</th><th>당량 pH</th><th>반당량 pH</th><th></th></tr></thead><tbody>';
+  records.forEach((r,i)=>{
+    h+='<tr><td>'+(i+1)+'</td><td>'+r.combo+'</td><td>'+r.c+'</td><td>'+r.ve+'</td><td>'+r.phe+'</td><td>'+r.half+'</td>'
+      +'<td><button class="del" data-i="'+i+'" aria-label="'+(i+1)+'번 기록 삭제">×</button></td></tr>';
+  });
+  a.innerHTML=h+'</tbody></table>';
+  a.querySelectorAll('.del').forEach(b=>b.addEventListener('click',()=>{ records.splice(+b.dataset.i,1); renderTable(); }));
+}
+$('rec').addEventListener('click',()=>{
+  const ve=eqVolume();
+  records.push({
+    combo:(Ka>=1e3?'강산':'약산')+'-'+(Kb>=1e3?'강염기':'약염기'),
+    c:analyteC().toFixed(3), ve:ve.toFixed(1),
+    phe:phAt(ve).toFixed(2),
+    half: isWeakAnalyte()? phAt(ve*0.5).toFixed(3) : '—'
+  });
+  renderTable(); toast('기록했습니다 — 총 '+records.length+'개');
+});
+$('clr').addEventListener('click',()=>{ records=[]; renderTable(); toast('기록을 모두 지웠습니다'); });
+
+/* ═══ 토스트 ═══ */
+let toastT;
+function toast(msg){
+  const el=$('toast'); el.textContent=msg; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2400);
+}
+
+syncVbSlider(); renderTable(); refresh();
+})();
+</script>
+</body>
+</html>
