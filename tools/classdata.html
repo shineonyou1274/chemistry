@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모둠 데이터 집계 — 스무 개를 겹쳐 본다</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root{
+    --paper:#E9ECEF; --panel:#FFFFFF; --ink:#16202B; --muted:#5F6B78;
+    --line:#D2D8DF; --line-soft:#E6EAEE;
+    --gauge:#C0392B; --particle:#1F5FA8; --lock:#1B7A5A;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Pretendard,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    --fs:15px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:var(--fs);line-height:1.65;-webkit-font-smoothing:antialiased}
+  body.big{--fs:20.25px}
+  .wrap{max-width:1240px;margin:0 auto;padding:26px 20px 72px}
+  .eyebrow{font-family:var(--mono);font-size:.73em;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+  h1{font-size:clamp(24px,3.6vw,34px);line-height:1.2;font-weight:800;letter-spacing:-.025em;margin:0 0 10px}
+  .lede{color:var(--muted);max-width:60ch;margin:0 0 22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:18px}
+  .card-head{display:flex;align-items:baseline;gap:10px;padding-bottom:12px;margin-bottom:16px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+  .card-head h2{font-size:1em;font-weight:700;margin:0}
+  .card-head .tag{font-family:var(--mono);font-size:.68em;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .split{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:20px;align-items:start}
+  @media(max-width:980px){.split{grid-template-columns:1fr}}
+  .colcap{font-family:var(--mono);font-size:.68em;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 9px}
+  .boxwrap{background:#F5F7F9;border:1px solid var(--line);border-radius:8px;padding:10px}
+  canvas{display:block;width:100%;height:auto}
+  button{font-family:var(--sans);font-size:.87em;font-weight:600;cursor:pointer;background:var(--panel);
+    color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 13px}
+  button:hover{background:#F2F5F8;border-color:#B9C2CC}
+  button:focus-visible{outline:2px solid var(--particle);outline-offset:2px}
+  button.solid{background:var(--ink);color:#fff;border-color:var(--ink)}
+  button.solid:hover{background:#2A3947}
+  button.tiny{font-size:.76em;padding:4px 9px}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .row.mt{margin-top:14px}
+  select,input[type=text]{padding:7px 9px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:.9em;background:#FCFDFE;color:var(--ink)}
+  label.f{display:block;margin-bottom:12px}
+  label.f .lb{display:block;font-size:.86em;font-weight:600;margin-bottom:5px}
+  label.f select,label.f input{width:100%}
+  .hint{font-size:.8em;color:var(--muted);margin:5px 0 0;line-height:1.5}
+  .grid-scroll{overflow:auto;max-height:52vh;border:1px solid var(--line);border-radius:8px}
+  table.grid{border-collapse:separate;border-spacing:0;width:100%;font-family:var(--mono);font-size:.8em;font-variant-numeric:tabular-nums}
+  table.grid th,table.grid td{border-bottom:1px solid var(--line-soft);border-right:1px solid var(--line-soft);padding:0}
+  table.grid th{background:#F5F7F9;position:sticky;top:0;z-index:2;font-size:.86em;font-weight:600;
+    letter-spacing:.04em;color:var(--muted);padding:7px 6px;white-space:nowrap}
+  table.grid th:first-child{left:0;z-index:3}
+  table.grid td:first-child{position:sticky;left:0;background:#F5F7F9;z-index:1}
+  table.grid input{width:100%;min-width:62px;border:0;background:transparent;padding:6px;
+    font-family:var(--mono);font-size:1em;text-align:right;color:var(--ink);font-variant-numeric:tabular-nums}
+  table.grid input:focus{outline:2px solid var(--particle);outline-offset:-2px;background:#FCFDFE}
+  table.grid td.out input{background:#FDF3F1;color:#8A4034;font-weight:600}
+  table.grid td.stat{background:#F1F8F4;color:#2E5B48;font-weight:600;padding:6px;text-align:right;white-space:nowrap}
+  .legend{display:flex;flex-wrap:wrap;gap:9px;margin-top:10px}
+  .legend span{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:.72em;color:var(--muted)}
+  .legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+  .green{background:#F1F8F4;border:1px solid #CBE5D8;border-radius:9px;padding:14px 16px;margin-top:16px}
+  .green h4{font-size:.88em;margin:0 0 8px;color:#2E5B48}
+  .green ul{margin:0;padding-left:19px;font-size:.86em;color:#3E6B58;line-height:1.7}
+  .red{background:#FDF3F1;border:1px solid #EFCFC8;border-radius:9px;padding:14px 16px;margin-top:16px}
+  .red h4{font-size:.88em;margin:0 0 8px;color:#8A4034}
+  .red p,.red ul{margin:0;font-size:.86em;color:#8A4034;line-height:1.65}
+  .red ul{padding-left:19px}
+  .note{background:#FDFBF4;border:1px solid #E8DFC4;border-radius:9px;padding:14px 16px;margin-top:16px}
+  .note h4{font-size:.88em;margin:0 0 8px;color:#4A4232}
+  .note p,.note ul{margin:0;font-size:.86em;color:#4A4232;line-height:1.7}
+  .note ul{padding-left:19px}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);background:var(--ink);color:#fff;
+    padding:10px 18px;border-radius:7px;font-size:.87em;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:60}
+  .toast.on{opacity:1;transform:translate(-50%,0)}
+  @media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+  @media print{.row,.grid-scroll,button{display:none!important}.card{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">교실 도구 · 모둠 데이터 집계</p>
+  <h1>한 조가 한 시간에 곡선 하나.<br>겹쳐 놓아야 보인다</h1>
+  <p class="lede">모둠이 부르는 값을 그대로 치세요. 칠 때마다 곡선이 겹쳐 그려지고, 학급 평균과 눈에 띄게 벗어난 값이 표시됩니다.
+  서버도 계정도 필요 없습니다 — 이 파일 하나면 됩니다.</p>
+
+  <section class="card">
+    <div class="card-head"><h2>집계</h2><span class="tag">Live</span>
+      <div class="row" style="margin-left:auto">
+        <button class="tiny" id="big">큰 글씨</button>
+        <button class="tiny" id="save">저장</button>
+        <button class="tiny" id="load">불러오기</button>
+        <input type="file" id="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+
+    <div class="split">
+      <div>
+        <p class="colcap">왼쪽 · 겹쳐 보기</p>
+        <div class="boxwrap"><canvas id="plot" width="1120" height="720"></canvas></div>
+        <div class="legend" id="legend"></div>
+        <div class="row mt">
+          <button id="csv">CSV 내려받기</button>
+          <button id="png">그림으로 저장</button>
+          <button class="tiny" id="demo">예시 값 채우기</button>
+          <button class="tiny" id="clear">값 모두 지우기</button>
+        </div>
+        <div class="red" id="outBox" style="display:none">
+          <h4>확인해 볼 값</h4>
+          <ul id="outList"></ul>
+          <p style="margin-top:8px">틀렸다는 뜻이 아닙니다. <b>왜 다른지 그 모둠에게 물어볼 자리</b>입니다.
+          측정 실수일 수도, 조건이 달랐을 수도, 다른 모둠이 틀렸을 수도 있습니다.</p>
+        </div>
+      </div>
+
+      <div>
+        <p class="colcap">오른쪽 · 값 넣기</p>
+        <label class="f"><span class="lb">실험</span>
+          <select id="preset"></select>
+          <p class="hint" id="presetHint"></p></label>
+        <div class="row" style="gap:10px;margin-bottom:12px">
+          <label class="f" style="flex:1;margin:0"><span class="lb">모둠 수</span>
+            <select id="ngroups"></select></label>
+          <label class="f" style="flex:1;margin:0"><span class="lb">측정점 수</span>
+            <select id="npoints"></select></label>
+        </div>
+        <div class="grid-scroll"><table class="grid" id="grid"></table></div>
+        <p class="hint">첫 열은 조절 변인입니다. 고쳐도 됩니다.
+          <b>Enter</b>를 누르면 같은 모둠의 다음 줄로 내려갑니다 — 한 모둠 값을 한 번에 치기 좋습니다.</p>
+
+        <div class="green">
+          <h4>겹쳐 놓고 물어볼 것</h4>
+          <ul id="asks"></ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="note">
+    <h4>이 도구가 하지 않는 것</h4>
+    <ul>
+      <li>학생 스마트폰에서 값을 받아오지 않습니다. 기기 사이로 데이터가 오가려면 서버가 있어야 하는데, 이 파일은 서버 없이 도는 것을 택했습니다. 모둠이 부르는 값을 교사가 칩니다</li>
+      <li>브라우저에 아무것도 저장하지 않습니다. 남기려면 <b>저장</b>으로 JSON을 내려받으세요. 공용 PC에 학급 데이터가 남지 않습니다</li>
+      <li>이상치는 <b>평균과 표준편차로 잡지 않습니다.</b> 조가 대여섯인 작은 표본에서는 극단값 하나가 표준편차를 부풀려 자기 자신을 숨겨 버립니다 — 조가 다섯이면 2 표준편차를 넘는 것이 수학적으로 아예 불가능합니다. 그래서 <b>중앙값과 MAD</b>를 씁니다. 값 하나가 기준을 흔들지 못합니다</li>
+      <li>표에 보이는 평균·표준편차는 학생에게 익숙한 값이라 그대로 띄웁니다. 다만 <b>붉게 표시하는 판단은 중앙값 기준</b>입니다. 둘이 다른 이야기를 할 수 있고, 그 자체가 좋은 수업 소재입니다</li>
+      <li>통계적 신호일 뿐 옳고 그름의 판정이 아닙니다. 모둠이 넷 이상일 때만 표시합니다</li>
+    </ul>
+  </div>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ═══════════ 실험 프리셋 ═══════════ */
+const PRESETS=[
+  {id:'titr', name:'중화 적정 — pH 곡선',
+   x:{label:'넣은 적정액', unit:'mL'}, y:{label:'pH', unit:''},
+   xs:[0,5,10,15,20,22,24,24.5,25,25.5,26,28,30,35],
+   hint:'모둠마다 곡선 하나씩. 급변 구간이 어디서 갈라지는지 겹쳐 놓으면 보입니다.',
+   asks:['우리 조 곡선만 당량점이 왼쪽인 이유는 무엇일까',
+         '급변 구간의 높이가 조마다 다르다면 무엇이 달랐던 걸까',
+         '평균 곡선의 당량점으로 미지 농도를 구하면 얼마인가']},
+  {id:'rate', name:'반응 속도 — 시간에 따른 변화',
+   x:{label:'시간', unit:'초'}, y:{label:'측정값', unit:''},
+   xs:[0,10,20,30,40,50,60,90,120,150,180],
+   hint:'기체 부피, 남은 농도, 질량 감소 등 무엇을 재든 됩니다. y축 이름은 아래에서 바꾸세요.',
+   asks:['곡선의 기울기가 가장 가파른 구간은 언제인가. 왜 그런가',
+         '나중으로 갈수록 완만해지는 이유를 입자 충돌로 설명하면',
+         '조마다 초반 기울기가 다르다면 무엇이 달랐을까']},
+  {id:'boyle', name:'보일 법칙 — 압력과 부피',
+   x:{label:'압력', unit:'상대값'}, y:{label:'부피', unit:'mL'},
+   xs:[1.0,1.2,1.4,1.6,1.8,2.0,2.5,3.0],
+   hint:'P와 V를 곱해 보게 하세요. 일정하면 반비례입니다.',
+   asks:['P × V를 계산하면 조마다 일정한가',
+         '일정하지 않다면 어디서 새어 나갔을까',
+         '그래프가 직선이 아닌 이유는 무엇인가']},
+  {id:'point', name:'값 하나씩 — 당량점·어는점 등',
+   x:{label:'회차', unit:''}, y:{label:'측정값', unit:''},
+   xs:[1,2,3],
+   hint:'모둠마다 값 하나(또는 반복 측정)만 낼 때 씁니다. 학급 평균과 흩어진 정도를 봅니다.',
+   asks:['학급 평균에서 가장 멀리 떨어진 조는 어디인가',
+         '흩어진 정도가 크다면 측정 방법의 어느 단계가 원인일까',
+         '참값을 안다면, 평균은 참값에 얼마나 가까운가']},
+  {id:'free', name:'직접 정의',
+   x:{label:'조절 변인', unit:''}, y:{label:'관찰 변인', unit:''},
+   xs:[1,2,3,4,5],
+   hint:'축 이름과 측정점을 직접 채워 쓰세요.',
+   asks:['두 변인의 관계를 방향과 함께 한 문장으로 쓰면',
+         '조마다 다른 값이 나온 까닭은 무엇일까',
+         '수치 두 개를 근거로 들어 설명하면']}
+];
+const COLORS=['#1F5FA8','#C0392B','#1B7A5A','#8E44AD','#B5651D','#2E86AB','#D4A017','#5FA36A','#A0446B','#4F7CAD'];
+
+/* ═══════════ 상태 ═══════════ */
+let preset=PRESETS[0], nG=6, nP=preset.xs.length;
+let xs=preset.xs.slice(0,nP);
+let data=[];                        // data[point][group] = number | null
+let yLabel=preset.y.label, yUnit=preset.y.unit, xLabel=preset.x.label, xUnit=preset.x.unit;
+
+function blank(){ data=xs.map(()=>new Array(nG).fill(null)); }
+function resize(){
+  const old=data;
+  data=xs.map((_,i)=>{
+    const row=new Array(nG).fill(null);
+    if(old[i]) for(let g=0;g<nG;g++) row[g]= old[i][g]!==undefined? old[i][g] : null;
+    return row;
+  });
+}
+
+/* ═══════════ 통계 ═══════════ */
+function rowStats(i){
+  const v=data[i].filter(x=>x!==null && isFinite(x));
+  if(!v.length) return null;
+  const mean=v.reduce((a,b)=>a+b,0)/v.length;
+  const sd=v.length>1 ? Math.sqrt(v.reduce((a,b)=>a+(b-mean)*(b-mean),0)/(v.length-1)) : 0;
+  return {n:v.length, mean, sd};
+}
+/* 표준편차로 이상치를 잡으면 작은 표본에서 작동하지 않는다.
+   극단값 하나가 표준편차를 부풀려 자기 자신을 숨기기 때문이다.
+   |z|의 이론적 최댓값이 (n-1)/√n 이라, 조가 다섯이면 2σ를 넘는 것이 아예 불가능하다.
+   그래서 중앙값과 MAD(중앙값 절대편차)를 쓴다 — 값 하나가 흔들지 못한다. */
+function median(a){
+  const s=a.slice().sort((x,y)=>x-y), m=s.length>>1;
+  return s.length%2 ? s[m] : (s[m-1]+s[m])/2;
+}
+function rowRobust(i){
+  const v=data[i].filter(x=>x!==null && isFinite(x));
+  if(v.length<4) return null;                       // 넷은 되어야 '벗어났다'는 말이 성립한다
+  const med=median(v);
+  const mad=median(v.map(x=>Math.abs(x-med)));
+  let scale;
+  if(mad>0) scale=mad/0.6745;                       // 정규분포에서 표준편차와 눈금을 맞춘다
+  else{                                             // 절반 넘게 같은 값이면 MAD가 0이 된다
+    const mean=v.reduce((a,b)=>a+b,0)/v.length;
+    const meanAbs=v.reduce((a,b)=>a+Math.abs(b-mean),0)/v.length;
+    if(meanAbs<=0) return null;
+    scale=meanAbs/0.7979;
+  }
+  return {med, scale};
+}
+const OUT_Z=3.5;
+function zOf(i,g){
+  const r=rowRobust(i), v=data[i][g];
+  if(!r || v===null || !isFinite(v)) return null;
+  return (v-r.med)/r.scale;
+}
+function isOutlier(i,g){
+  const z=zOf(i,g);
+  return z!==null && Math.abs(z)>OUT_Z;
+}
+function outliers(){
+  const out=[];
+  for(let i=0;i<xs.length;i++) for(let g=0;g<nG;g++)
+    if(isOutlier(i,g)){ const r=rowRobust(i);
+      out.push({i,g,v:data[i][g],med:r.med,z:zOf(i,g)}); }
+  return out;
+}
+
+/* ═══════════ 그래프 ═══════════ */
+const plot=$('plot'), ctx=plot.getContext('2d');
+const CW=1120, CH=720, PL=92, PR=30, PT=48, PB=64;
+function bounds(){
+  let ymin=Infinity, ymax=-Infinity;
+  for(const row of data) for(const v of row) if(v!==null&&isFinite(v)){ ymin=Math.min(ymin,v); ymax=Math.max(ymax,v); }
+  if(!isFinite(ymin)){ ymin=0; ymax=1; }
+  if(ymax-ymin<1e-9){ ymax=ymin+1; }
+  const pad=(ymax-ymin)*0.12; ymin-=pad; ymax+=pad;
+  const xmin=Math.min(...xs), xmax=Math.max(...xs);
+  return {ymin,ymax,xmin,xmax:(xmax-xmin<1e-9?xmin+1:xmax)};
+}
+function draw(){
+  const b=bounds();
+  const X=v=>PL+((v-b.xmin)/(b.xmax-b.xmin))*(CW-PL-PR);
+  const Y=v=>CH-PB-((v-b.ymin)/(b.ymax-b.ymin))*(CH-PT-PB);
+  ctx.clearRect(0,0,CW,CH); ctx.fillStyle='#FFFFFF'; ctx.fillRect(0,0,CW,CH);
+
+  ctx.font='500 17px ui-monospace,monospace'; ctx.fillStyle='#5F6B78';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let i=0;i<=5;i++){
+    const v=b.ymin+(b.ymax-b.ymin)*i/5, y=Y(v);
+    ctx.strokeStyle='#EEF1F4'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(PL,y); ctx.lineTo(CW-PR,y); ctx.stroke();
+    ctx.fillText(fmt(v), PL-12, y);
+  }
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  let lastRight=-Infinity;                            // 눈금이 촘촘하면 글자가 겹친다 — 겹칠 것은 건너뛴다
+  for(const xv of xs){
+    const x=X(xv);
+    ctx.strokeStyle='#F3F5F7'; ctx.beginPath(); ctx.moveTo(x,PT); ctx.lineTo(x,CH-PB); ctx.stroke();
+    const lab=axfmt(xv), half=ctx.measureText(lab).width/2;
+    if(x-half > lastRight+10){
+      ctx.fillStyle='#5F6B78'; ctx.fillText(lab, x, CH-PB+10);
+      lastRight=x+half;
+    }else{                                            // 자리가 없으면 눈금만 짧게 남긴다
+      ctx.strokeStyle='#C6CED6'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x,CH-PB); ctx.lineTo(x,CH-PB+5); ctx.stroke();
+    }
+  }
+  ctx.strokeStyle='#B9C2CC'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(PL,PT); ctx.lineTo(PL,CH-PB); ctx.lineTo(CW-PR,CH-PB); ctx.stroke();
+  ctx.textAlign='left'; ctx.textBaseline='alphabetic'; ctx.fillStyle='#5F6B78';
+  ctx.fillText(yLabel+(yUnit?' ('+yUnit+')':''), PL-80, 24);
+  ctx.textAlign='right';
+  ctx.fillText(xLabel+(xUnit?' ('+xUnit+')':''), CW-PR, CH-PB+42);
+
+  for(let g=0;g<nG;g++){                              // 모둠별 곡선
+    const pts=[];
+    for(let i=0;i<xs.length;i++) if(data[i][g]!==null&&isFinite(data[i][g])) pts.push([xs[i],data[i][g]]);
+    if(!pts.length) continue;
+    ctx.strokeStyle=COLORS[g%COLORS.length]; ctx.lineWidth=2.4;
+    ctx.globalAlpha=.72; ctx.lineJoin='round'; ctx.beginPath();
+    pts.forEach((p,k)=>{ const x=X(p[0]),y=Y(p[1]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke(); ctx.globalAlpha=1;
+    for(let i=0;i<xs.length;i++){
+      const v=data[i][g]; if(v===null||!isFinite(v)) continue;
+      const x=X(xs[i]), y=Y(v), o=isOutlier(i,g);
+      ctx.beginPath(); ctx.arc(x,y,o?7:4,0,6.2832);
+      ctx.fillStyle=o?'#C0392B':COLORS[g%COLORS.length]; ctx.fill();
+      if(o){ ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); }
+    }
+  }
+
+  const mp=[];                                        // 학급 평균
+  for(let i=0;i<xs.length;i++){ const s=rowStats(i); if(s) mp.push([xs[i],s.mean]); }
+  if(mp.length>1){
+    ctx.strokeStyle='#16202B'; ctx.lineWidth=4.5; ctx.lineJoin='round'; ctx.beginPath();
+    mp.forEach((p,k)=>{ const x=X(p[0]),y=Y(p[1]); k?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+    ctx.stroke();
+    ctx.font='600 18px ui-monospace,monospace'; ctx.fillStyle='#16202B'; ctx.textAlign='left';
+    const last=mp[mp.length-1];
+    ctx.fillText('학급 평균', Math.min(X(last[0])+10, CW-PR-90), Y(last[1])-8);
+  }
+  const filled=data.flat().filter(v=>v!==null).length;
+  if(!filled){
+    ctx.font='500 20px '+getComputedStyle(document.body).fontFamily;
+    ctx.fillStyle='#9AA6B2'; ctx.textAlign='center';
+    ctx.fillText('오른쪽에 값을 넣으면 여기에 겹쳐 그려집니다', CW/2, CH/2);
+  }
+}
+function axfmt(v){                                    // 축 눈금은 꼬리 0을 떼어 짧게
+  if(!isFinite(v)) return '—';
+  const a=Math.abs(v);
+  const d = a>=100?0 : a>=10?1 : a>=1?2 : 3;
+  return (+v.toFixed(d)).toString();
+}
+function fmt(v){
+  if(!isFinite(v)) return '—';
+  const a=Math.abs(v);
+  if(a>=1000) return v.toFixed(0);
+  if(a>=100) return v.toFixed(1);
+  if(a>=1) return v.toFixed(2);
+  return v.toFixed(3);
+}
+
+/* ═══════════ 표 ═══════════ */
+function buildGrid(){
+  let h='<thead><tr><th>'+esc(xLabel)+(xUnit?'<br>'+esc(xUnit):'')+'</th>';
+  for(let g=0;g<nG;g++) h+='<th style="color:'+COLORS[g%COLORS.length]+'">'+(g+1)+'조</th>';
+  h+='<th>평균</th><th>표준편차</th></tr></thead><tbody>';
+  for(let i=0;i<xs.length;i++){
+    h+='<tr><td><input type="text" inputmode="decimal" data-x="'+i+'" value="'+xs[i]+'"></td>';
+    for(let g=0;g<nG;g++){
+      h+='<td data-cell="'+i+'.'+g+'"><input type="text" inputmode="decimal" data-v="'+i+'.'+g+'"'
+        +' aria-label="'+(g+1)+'조, '+esc(xLabel)+' '+xs[i]+'" value="'+(data[i][g]===null?'':data[i][g])+'"></td>';
+    }
+    h+='<td class="stat" data-mean="'+i+'">—</td><td class="stat" data-sd="'+i+'">—</td></tr>';
+  }
+  $('grid').innerHTML=h+'</tbody>';
+}
+function refreshStats(){
+  for(let i=0;i<xs.length;i++){
+    const s=rowStats(i);
+    const m=document.querySelector('[data-mean="'+i+'"]'), d=document.querySelector('[data-sd="'+i+'"]');
+    if(m) m.textContent = s? fmt(s.mean) : '—';
+    if(d) d.textContent = s&&s.n>1 ? fmt(s.sd) : '—';
+    for(let g=0;g<nG;g++){
+      const c=document.querySelector('[data-cell="'+i+'.'+g+'"]');
+      if(c) c.classList.toggle('out', isOutlier(i,g));
+    }
+  }
+  const o=outliers();
+  $('outBox').style.display = o.length? '' : 'none';
+  $('outList').innerHTML = o.map(x=>
+    '<li><b>'+(x.g+1)+'조</b> · '+esc(xLabel)+' '+fmt(xs[x.i])+(xUnit?' '+esc(xUnit):'')
+    +' 에서 <b>'+fmt(x.v)+'</b> — 나머지 조의 가운데값 '+fmt(x.med)+'에서 '
+    +Math.abs(x.z).toFixed(1)+'배 흩어짐만큼 떨어져 있습니다</li>').join('');
+  $('legend').innerHTML =
+    Array.from({length:nG},(_,g)=>'<span><i style="background:'+COLORS[g%COLORS.length]+'"></i>'+(g+1)+'조</span>').join('')
+    +'<span><i style="background:#16202B;height:4px"></i>학급 평균</span>'
+    +'<span><i style="background:#C0392B;border-radius:50%;width:9px;height:9px"></i>확인해 볼 값</span>';
+  draw();
+}
+
+/* ═══════════ 입력 ═══════════ */
+$('grid').addEventListener('input', e=>{
+  const t=e.target;
+  if(t.dataset.v!==undefined){
+    const [i,g]=t.dataset.v.split('.').map(Number);
+    const raw=t.value.trim();
+    data[i][g] = raw==='' ? null : (isFinite(+raw) ? +raw : null);
+    refreshStats();
+  }
+  if(t.dataset.x!==undefined){
+    const i=+t.dataset.x, raw=t.value.trim();
+    if(raw!=='' && isFinite(+raw)){ xs[i]=+raw; refreshStats(); }
+  }
+});
+$('grid').addEventListener('keydown', e=>{
+  if(e.key!=='Enter') return;
+  const t=e.target; if(t.dataset.v===undefined) return;
+  e.preventDefault();
+  const [i,g]=t.dataset.v.split('.').map(Number);
+  const next=document.querySelector('[data-v="'+(i+1)+'.'+g+'"]');   // 같은 조의 다음 줄
+  if(next){ next.focus(); next.select(); }
+});
+
+/* ═══════════ 컨트롤 ═══════════ */
+const pSel=$('preset');
+PRESETS.forEach(p=>{ const o=document.createElement('option'); o.value=p.id; o.textContent=p.name; pSel.appendChild(o); });
+for(let n=2;n<=10;n++){ const o=document.createElement('option'); o.value=n; o.textContent=n+'개 조'; $('ngroups').appendChild(o); }
+for(let n=1;n<=20;n++){ const o=document.createElement('option'); o.value=n; o.textContent=n+'개'; $('npoints').appendChild(o); }
+
+function loadPreset(id){
+  preset=PRESETS.find(p=>p.id===id)||PRESETS[0];
+  xLabel=preset.x.label; xUnit=preset.x.unit; yLabel=preset.y.label; yUnit=preset.y.unit;
+  nP=preset.xs.length; xs=preset.xs.slice();
+  $('presetHint').textContent=preset.hint;
+  $('npoints').value=nP;
+  $('asks').innerHTML=preset.asks.map(a=>'<li>'+esc(a)+'</li>').join('');
+  blank(); buildGrid(); refreshStats();
+}
+pSel.addEventListener('change',e=>{ loadPreset(e.target.value); toast(preset.name+' 로 바꿨습니다'); });
+$('ngroups').addEventListener('change',e=>{ nG=+e.target.value; resize(); buildGrid(); refreshStats(); });
+$('npoints').addEventListener('change',e=>{
+  const n=+e.target.value;
+  if(n>xs.length){ const step=(xs.length>1? xs[xs.length-1]-xs[xs.length-2] : 1)||1;
+    while(xs.length<n) xs.push(+(xs[xs.length-1]+step).toFixed(4)); }
+  else xs=xs.slice(0,n);
+  resize(); buildGrid(); refreshStats();
+});
+$('big').addEventListener('click',()=>{
+  document.body.classList.toggle('big');
+  $('big').textContent=document.body.classList.contains('big')?'작은 글씨':'큰 글씨';
+});
+$('clear').addEventListener('click',()=>{ blank(); buildGrid(); refreshStats(); toast('값을 모두 지웠습니다'); });
+$('demo').addEventListener('click',()=>{
+  for(let i=0;i<xs.length;i++) for(let g=0;g<nG;g++){
+    let base;
+    if(preset.id==='titr'){ const t=(xs[i]-25)/2.2; base=1.2+11.6/(1+Math.exp(-t)); }
+    else if(preset.id==='rate'){ base=100*(1-Math.exp(-xs[i]/45)); }
+    else if(preset.id==='boyle'){ base=120/xs[i]; }
+    else base=10+xs[i]*0.8;
+    const jitter=1+(((i*37+g*91)%17)-8)/120;
+    data[i][g]=+(base*jitter).toFixed(2);
+  }
+  if(nG>=4) for(let i=0;i<xs.length;i++) data[i][nG-1]=+(data[i][nG-1]*1.22).toFixed(2);  // 한 조는 벗어나게
+  buildGrid(); refreshStats(); toast('예시 값을 채웠습니다. 연습용이니 실제 수업 전에 지우세요');
+});
+
+/* ═══════════ 내보내기 ═══════════ */
+function download(text,name,mime){
+  const url=URL.createObjectURL(new Blob([text],{type:(mime||'text/plain')+';charset=utf-8'}));
+  const a=document.createElement('a'); a.href=url; a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function stamp(){ const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+p(d.getMinutes()); }
+$('csv').addEventListener('click',()=>{
+  let out=xLabel+(xUnit?'('+xUnit+')':'');
+  for(let g=0;g<nG;g++) out+=','+(g+1)+'조';
+  out+=',평균,표준편차\n';
+  for(let i=0;i<xs.length;i++){
+    out+=xs[i];
+    for(let g=0;g<nG;g++) out+=','+(data[i][g]===null?'':data[i][g]);
+    const s=rowStats(i);
+    out+=','+(s?s.mean.toFixed(4):'')+','+(s&&s.n>1?s.sd.toFixed(4):'')+'\n';
+  }
+  // 엑셀이 한글을 깨뜨리지 않도록 BOM 을 붙인다
+  download('﻿'+out, 'class-data_'+stamp()+'.csv', 'text/csv');
+  toast('CSV로 내려받았습니다. 엑셀에서 바로 열립니다');
+});
+$('png').addEventListener('click',()=>{
+  plot.toBlob(b=>{
+    const url=URL.createObjectURL(b), a=document.createElement('a');
+    a.href=url; a.download='class-graph_'+stamp()+'.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    toast('그래프를 그림으로 저장했습니다');
+  });
+});
+$('save').addEventListener('click',()=>{
+  download(JSON.stringify({kind:'chem-class-data',preset:preset.id,nG,xs,data,
+    xLabel,xUnit,yLabel,yUnit,savedAt:new Date().toISOString()},null,2),
+    'class-data_'+stamp()+'.json','application/json');
+  toast('JSON으로 내려받았습니다');
+});
+$('load').addEventListener('click',()=>$('file').click());
+$('file').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const o=JSON.parse(r.result);
+      if(!o||o.kind!=='chem-class-data'||!Array.isArray(o.xs)||!Array.isArray(o.data)) throw 0;
+      preset=PRESETS.find(p=>p.id===o.preset)||PRESETS[0];
+      pSel.value=preset.id; $('presetHint').textContent=preset.hint;
+      $('asks').innerHTML=preset.asks.map(a=>'<li>'+esc(a)+'</li>').join('');
+      nG=+o.nG||6; xs=o.xs.slice(); data=o.data.map(r=>r.slice());
+      xLabel=o.xLabel||preset.x.label; xUnit=o.xUnit||''; yLabel=o.yLabel||preset.y.label; yUnit=o.yUnit||'';
+      $('ngroups').value=nG; $('npoints').value=xs.length;
+      buildGrid(); refreshStats(); toast('불러왔습니다');
+    }catch(err){ toast('불러오지 못했습니다 — 이 도구가 저장한 JSON만 열 수 있습니다'); }
+    e.target.value='';
+  };
+  r.readAsText(f);
+});
+window.addEventListener('beforeunload',e=>{
+  if(data.flat().some(v=>v!==null)){ e.preventDefault(); e.returnValue=''; }
+});
+
+let toastT;
+function toast(m){ const el=$('toast'); el.textContent=m; el.classList.add('on');
+  clearTimeout(toastT); toastT=setTimeout(()=>el.classList.remove('on'),2600); }
+
+$('ngroups').value=nG;
+loadPreset('titr');
+})();
+</script>
+</body>
+</html>
